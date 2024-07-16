@@ -1,25 +1,24 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function SplashScreen({ navigation }) {
-  const fadeAnim = new Animated.Value(0);
-
   useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 2000,
-      useNativeDriver: true,
-    }).start(() => {
-      setTimeout(() => {
-        navigation.replace('Login');
-      }, 1000);
-    });
-  }, [fadeAnim, navigation]);
+    // Simule um tempo de carregamento antes de navegar para a tela de login
+    const timer = setTimeout(() => {
+      navigation.replace('Login');
+    }, 3000); // 3 segundos
+
+    return () => clearTimeout(timer);
+  }, [navigation]);
 
   return (
-    <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
+    <LinearGradient
+      colors={['#1E90FF', '#87CEFA']} // Dodger Blue to Light Sky Blue
+      style={styles.container}
+    >
       <Text style={styles.text}>Inner</Text>
-    </Animated.View>
+    </LinearGradient>
   );
 }
 
@@ -28,11 +27,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'linear-gradient(45deg, #1E90FF, #00BFFF)', // Gradient Blue
   },
   text: {
-    fontSize: 40,
-    color: '#fff',
+    fontSize: 48,
     fontWeight: 'bold',
+    color: '#FFFFFF', // White
   },
 });
