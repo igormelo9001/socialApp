@@ -2,6 +2,7 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import HomeScreen from '../screens/HomeScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import ContactsScreen from '../screens/ContactsScreen';
 import MessageScreen from '../screens/MessageScreen';
 import PostScreen from '../screens/PostScreen';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,9 +24,10 @@ const MainTabs = () => {
             iconName = focused ? 'person' : 'person-outline';
           } else if (route.name === 'Messages') {
             iconName = focused ? 'chatbox' : 'chatbox-outline';
+          } else if (route.name === 'Contacts') {
+            iconName = focused ? 'people' : 'people-outline';
           }
 
-          // Você pode retornar qualquer componente que deseja aqui!
           return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: '#1E90FF', // Dodger Blue
@@ -36,6 +38,7 @@ const MainTabs = () => {
       <Tab.Screen name="Post" component={PostScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
       <Tab.Screen name="Messages" component={MessageScreen} />
+      <Tab.Screen name="Contacts" component={ContactsScreen} />
     </Tab.Navigator>
   );
 };
