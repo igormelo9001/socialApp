@@ -2,14 +2,21 @@ import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Button from '../components/Button';
 import Input from '../components/Input';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../firebase';
 
 export default function RegisterScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleRegister = () => {
-    // Implementar lógica de registro
-    navigation.replace('Main');
+  const handleRegister = async () => {
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+      navigation.navigate('Login'); // Navegar para a tela de login após cadastro bem-sucedido
+    } catch (error) {
+      console.error('Erro no cadastro:', error);
+      alert('Erro no cadastro. Verifique suas informações e tente novamente.');
+    }
   };
 
   return (

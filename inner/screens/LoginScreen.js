@@ -2,16 +2,22 @@ import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Button from '../components/Button';
 import Input from '../components/Input';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../firebase';
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = () => {
-    // Implementar lógica de login
-    navigation.replace('Main');
+  const handleLogin = async () => {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      navigation.navigate('Main'); // Navegar para a tela principal após login bem-sucedido
+    } catch (error) {
+      console.error('Erro no login:', error);
+      alert('Erro no login. Verifique suas credenciais e tente novamente.');
+    }
   };
-
   return (
     <View style={styles.container}>
       <Input

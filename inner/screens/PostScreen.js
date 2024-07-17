@@ -1,8 +1,11 @@
+// screens/PostScreen.js
 import React, { useState } from 'react';
-import { View, TextInput, Button, Image, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { db, auth } from '../firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import * as ImagePicker from 'expo-image-picker';
 
-export default function PostScreen({ navigation }) {
+const PostScreen = ({ navigation }) => {
   const [text, setText] = useState('');
   const [image, setImage] = useState(null);
 
@@ -14,18 +17,39 @@ export default function PostScreen({ navigation }) {
       quality: 1,
     });
 
-    if (!result.cancelled) {
+    if (!result.canceled) {
       setImage(result.uri);
     }
   };
 
-  const handlePost = () => {
-    // Implementar lógica de postagem
-    navigation.goBack();
+  const handlePost = async () => {
+    if (text || image) {
+      try {
+        const post = {
+          text,
+          user: auth.currentUser.email,
+          createdAt: serverTimestamp(),
+        };
+
+        if (image) {
+          post.image = image;
+        }
+
+        const postsCollectionRef = collection(db, 'posts');
+        await addDoc(postsCollectionRef, post);
+        navigation.goBack(); // Navegar de volta após o post
+      } catch (error) {
+        console.error('Erro ao criar post:', error);
+        alert('Erro ao criar post. Tente novamente.');
+      }
+    } else {
+      alert('Por favor, adicione texto ou imagem ao post.');
+    }
   };
 
   return (
     <View style={styles.container}>
+      <Text style={styles.title}>Create Post</Text>
       <TextInput
         style={styles.input}
         placeholder="What's on your mind?"
@@ -33,44 +57,49 @@ export default function PostScreen({ navigation }) {
         onChangeText={setText}
         multiline
       />
-      <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
-        <Text style={styles.imagePickerText}>Pick an image</Text>
+      <TouchableOpacity style={styles.button} onPress={pickImage}>
+        <Text style={styles.buttonText}>Pick an image</Text>
       </TouchableOpacity>
       {image && <Image source={{ uri: image }} style={styles.image} />}
       <Button title="Post" onPress={handlePost} />
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    justifyContent: 'center',
     padding: 16,
-    backgroundColor: '#E0F7FA', // Light Cyan
+  },
+  title: {
+    fontSize: 24,
+    marginBottom: 24,
+    textAlign: 'center',
   },
   input: {
     height: 100,
-    borderColor: '#1E90FF', // Dodger Blue
+    borderColor: '#ccc',
     borderWidth: 1,
+    marginBottom: 16,
     paddingHorizontal: 8,
-    borderRadius: 5,
-    marginBottom: 10,
+    textAlignVertical: 'top',
   },
-  imagePicker: {
-    backgroundColor: '#1E90FF',
+  button: {
+    backgroundColor: '#007BFF',
     padding: 10,
     borderRadius: 5,
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 16,
   },
-  imagePickerText: {
-    color: '#fff',
-    fontWeight: 'bold',
+  buttonText: {
+    color: '#FFF',
   },
   image: {
     width: '100%',
     height: 200,
-    marginBottom: 10,
-    borderRadius: 5,
+    marginBottom: 16,
   },
 });
+
+export default PostScreen;
