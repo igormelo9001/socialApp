@@ -1,13 +1,28 @@
-// screens/PostScreen.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Image, TouchableOpacity } from 'react-native';
-import { db, auth } from '../firebase';
+import { db, auth, storage } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
+import 'react-native-get-random-values'; // Importação da biblioteca
+import { v4 as uuidv4 } from 'uuid';  // Para gerar IDs únicos
 
 const PostScreen = ({ navigation }) => {
   const [text, setText] = useState('');
   const [image, setImage] = useState(null);
+  const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    // Solicitar permissões para acessar a galeria de imagens
+    const getPermission = async () => {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        alert('Desculpe, precisamos de permissões de galeria para isso funcionar!');
+      }
+    };
+
+    getPermission();
+  }, []);
 
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -18,22 +33,39 @@ const PostScreen = ({ navigation }) => {
     });
 
     if (!result.canceled) {
-      setImage(result.uri);
+      setImage(result.assets[0].uri);
     }
+  };
+
+  const uploadImage = async (uri) => {
+    if (!auth.currentUser) {
+      throw new Error('Usuário não autenticado');
+    }
+
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    const filename = uuidv4();
+    const storageRef = ref(storage, `images/${filename}`);
+    await uploadBytes(storageRef, blob);
+    const downloadURL = await getDownloadURL(storageRef);
+    return downloadURL;
   };
 
   const handlePost = async () => {
     if (text || image) {
+      setUploading(true);
       try {
+        let imageUrl = null;
+        if (image) {
+          imageUrl = await uploadImage(image);
+        }
+
         const post = {
           text,
+          image: imageUrl,
           user: auth.currentUser.email,
           createdAt: serverTimestamp(),
         };
-
-        if (image) {
-          post.image = image;
-        }
 
         const postsCollectionRef = collection(db, 'posts');
         await addDoc(postsCollectionRef, post);
@@ -41,6 +73,8 @@ const PostScreen = ({ navigation }) => {
       } catch (error) {
         console.error('Erro ao criar post:', error);
         alert('Erro ao criar post. Tente novamente.');
+      } finally {
+        setUploading(false);
       }
     } else {
       alert('Por favor, adicione texto ou imagem ao post.');
@@ -60,8 +94,9 @@ const PostScreen = ({ navigation }) => {
       <TouchableOpacity style={styles.button} onPress={pickImage}>
         <Text style={styles.buttonText}>Pick an image</Text>
       </TouchableOpacity>
-      {image && <Image source={{ uri: image }} style={styles.image} />}
-      <Button title="Post" onPress={handlePost} />
+      {image && <Image source={{ uri: image }} style={styles.imagePreview} />}
+      <Button title="Post" onPress={handlePost} disabled={uploading} />
+      {uploading && <Text>Uploading...</Text>}
     </View>
   );
 };
@@ -95,10 +130,11 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#FFF',
   },
-  image: {
+  imagePreview: {
     width: '100%',
     height: 200,
     marginBottom: 16,
+    resizeMode: 'cover',
   },
 });
 
