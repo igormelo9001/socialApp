@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { db } from '../firebase'; // Ajuste o caminho conforme necessário
 import { getDocs, collection } from 'firebase/firestore';
+import GraphScreen from './GraphScreen';
 
 const ContactsScreen = ({ navigation }) => {
   const [contacts, setContacts] = useState([]);
@@ -28,6 +29,10 @@ const ContactsScreen = ({ navigation }) => {
     navigation.navigate('Profile', { userId });
   };
 
+  const handleGraphPress = () => {
+    navigation.navigate('Graph', { contacts });
+  };
+
   const renderItem = ({ item }) => (
     <View style={styles.itemContainer}>
       <Text style={styles.email}>{item.email}</Text>
@@ -36,6 +41,9 @@ const ContactsScreen = ({ navigation }) => {
         onPress={() => handleProfilePress(item.id)}
       >
         <Text style={styles.buttonText}>View Profile</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.button} onPress={handleGraphPress}>
+        <Text style={styles.buttonText}>View Graph</Text>
       </TouchableOpacity>
     </View>
   );
