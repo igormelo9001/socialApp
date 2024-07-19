@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     color: '#FFF',
   },
   imagePreview: {
-    width: '100%',
+    width: 100,
     height: 200,
     marginBottom: 16,
     resizeMode: 'cover',

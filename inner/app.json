@@ -16,7 +16,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/inner.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.hemanz.inner"
