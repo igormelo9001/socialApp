@@ -1,55 +1,62 @@
-import React, { useState } from 'react';
-import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { auth, db } from '../firebase';
 
-const MessageScreen = ({ route }) => {
-  const { contact } = route.params;
-  const [messages, setMessages] = useState([
-    { id: '1', sender: 'Usuário 1', content: 'Olá, tudo bem?' },
-    { id: '2', sender: 'Você', content: 'Olá! Tudo bem e você?' },
-  ]);
-  const [newMessage, setNewMessage] = useState('');
+const MessagesScreen = ({ navigation }) => {
+  const [search, setSearch] = useState('');
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const handleSendMessage = () => {
-    if (newMessage.trim() === '') {
+  const handleSearch = async (text) => {
+    setSearch(text);
+    if (text.length === 0) {
+      setUsers([]);
       return;
     }
+    setLoading(true);
 
-    const message = {
-      id: String(messages.length + 1),
-      sender: 'Você',
-      content: newMessage.trim(),
-    };
+    const usersQuery = query(collection(db, 'users'), where('email', '>=', text), where('email', '<=', text + '\uf8ff'));
+    const unsubscribe = onSnapshot(usersQuery, (querySnapshot) => {
+      const usersData = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setUsers(usersData);
+      setLoading(false);
+    }, (error) => {
+      console.error('Error searching users:', error);
+      setLoading(false);
+    });
 
-    setMessages([...messages, message]);
-    setNewMessage('');
+    return () => unsubscribe();
+  };
+
+  const handleUserPress = (userId) => {
+    navigation.navigate('SendMessage', { receiverId: userId });
   };
 
   return (
     <View style={styles.container}>
-      <FlatList
-        data={messages}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={item.sender === 'Você' ? styles.messageSent : styles.messageReceived}>
-            <Text style={styles.messageContent}>{item.content}</Text>
-          </View>
-        )}
-        contentContainerStyle={styles.messagesContainer}
-        inverted // Para exibir as mensagens mais recentes no topo
+      <TextInput
+        style={styles.searchInput}
+        placeholder="Search by email"
+        value={search}
+        onChangeText={handleSearch}
       />
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Digite sua mensagem..."
-          value={newMessage}
-          onChangeText={setNewMessage}
-          onSubmitEditing={handleSendMessage}
-          blurOnSubmit={false}
+      {loading ? (
+        <ActivityIndicator size="large" color="#007BFF" />
+      ) : (
+        <FlatList
+          data={users}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <TouchableOpacity style={styles.userContainer} onPress={() => handleUserPress(item.id)}>
+              <Text style={styles.userEmail}>{item.email}</Text>
+            </TouchableOpacity>
+          )}
         />
-        <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
-          <Text style={styles.sendButtonText}>Enviar</Text>
-        </TouchableOpacity>
-      </View>
+      )}
     </View>
   );
 };
@@ -57,59 +64,27 @@ const MessageScreen = ({ route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#E0F7FA', // Light Cyan
+    padding: 16,
+    backgroundColor: '#E0F7FA',
   },
-  messagesContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
-  messageSent: {
-    alignSelf: 'flex-end',
-    backgroundColor: '#1E90FF', // Dodger Blue
-    padding: 10,
-    marginBottom: 10,
-    borderRadius: 10,
-    maxWidth: '80%',
-  },
-  messageReceived: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#87CEFA', // Light Sky Blue
-    padding: 10,
-    marginBottom: 10,
-    borderRadius: 10,
-    maxWidth: '80%',
-  },
-  messageContent: {
-    fontSize: 16,
-    color: '#fff',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#CCCCCC',
-    backgroundColor: '#FFFFFF', // White
-  },
-  input: {
-    flex: 1,
+  searchInput: {
     height: 40,
-    paddingHorizontal: 10,
+    borderColor: '#ccc',
     borderWidth: 1,
-    borderColor: '#CCCCCC',
-    borderRadius: 20,
-    marginRight: 10,
+    marginBottom: 16,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    backgroundColor: '#fff',
   },
-  sendButton: {
-    padding: 10,
-    backgroundColor: '#1E90FF', // Dodger Blue
-    borderRadius: 20,
+  userContainer: {
+    padding: 12,
+    backgroundColor: '#007BFF',
+    borderRadius: 8,
+    marginBottom: 8,
   },
-  sendButtonText: {
+  userEmail: {
     color: '#fff',
-    fontWeight: 'bold',
   },
 });
 
-export default MessageScreen;
+export default MessagesScreen;
