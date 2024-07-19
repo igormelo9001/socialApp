@@ -1,28 +1,52 @@
-import React from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { db } from '../firebase'; // Ajuste o caminho conforme necessário
+import { getDocs, collection } from 'firebase/firestore';
 
 const ContactsScreen = ({ navigation }) => {
-  const contacts = [
-    { id: '1', name: 'Usuário 1' },
-    { id: '2', name: 'Usuário 2' },
-    { id: '3', name: 'Usuário 3' },
-    { id: '4', name: 'Usuário 4' },
-  ];
+  const [contacts, setContacts] = useState([]);
 
-  const handleContactPress = (contact) => {
-    navigation.navigate('Message', { contact });
+  useEffect(() => {
+    const fetchContacts = async () => {
+      try {
+        const contactsCollection = collection(db, 'users');
+        const contactsSnapshot = await getDocs(contactsCollection);
+        const contactsList = contactsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setContacts(contactsList);
+      } catch (error) {
+        console.error('Error fetching contacts:', error);
+      }
+    };
+
+    fetchContacts();
+  }, []);
+
+  const handleProfilePress = (userId) => {
+    navigation.navigate('Profile', { userId });
   };
+
+  const renderItem = ({ item }) => (
+    <View style={styles.itemContainer}>
+      <Text style={styles.email}>{item.email}</Text>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => handleProfilePress(item.id)}
+      >
+        <Text style={styles.buttonText}>View Profile</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
       <FlatList
         data={contacts}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity style={styles.contactItem} onPress={() => handleContactPress(item)}>
-            <Text style={styles.contactName}>{item.name}</Text>
-          </TouchableOpacity>
-        )}
+        keyExtractor={item => item.id}
+        renderItem={renderItem}
+        contentContainerStyle={styles.list}
       />
     </View>
   );
@@ -32,17 +56,30 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#E0F7FA', // Light Cyan
+    backgroundColor: '#E0F7FA',
   },
-  contactItem: {
-    paddingVertical: 15,
+  list: {
+    paddingBottom: 16,
+  },
+  itemContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#CCCCCC',
+    borderBottomColor: '#ddd',
   },
-  contactName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1E90FF', // Dodger Blue
+  email: {
+    fontSize: 16,
+  },
+  button: {
+    backgroundColor: '#007BFF',
+    padding: 8,
+    borderRadius: 4,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 14,
   },
 });
 

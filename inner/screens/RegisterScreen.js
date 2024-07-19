@@ -61,6 +61,13 @@ const RegisterScreen = ({ navigation }) => {
       const postsCollectionRef = collection(db, 'profile-docs');
       await addDoc(postsCollectionRef, doc);
 
+      await addDoc(collection(db, 'users'), {
+        uid: user.uid,
+        email: user.email,
+        profileImage: imageUrl,
+        summary: '', // Inicialmente vazio
+      });
+
       navigation.navigate('Login');r
     } catch (error) {
       if (error.code === 'auth/email-already-in-use') {
