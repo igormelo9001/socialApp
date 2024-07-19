@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import { signOut } from 'firebase/auth';
 import * as ImagePicker from 'expo-image-picker';
 import { auth, db, storage } from '../firebase';
@@ -28,8 +28,8 @@ const ProfileScreen = ({ navigation }) => {
       const userDoc = await getDoc(doc(db, 'users', userId));
       if (userDoc.exists()) {
         const userData = userDoc.data();
-        setProfileImage(userData.profileImage);
-        setSummary(userData.summary);
+        setProfileImage(userData.profileImage || ''); // Ensure profileImage is a string
+        setSummary(userData.summary || ''); // Ensure summary is a string
       }
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -82,73 +82,103 @@ const ProfileScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
-      {user ? (
-        <>
-          <Text style={styles.title}>Profile</Text>
-          <TouchableOpacity onPress={pickImage}>
-            <Image source={{ uri: newImage || profileImage }} style={styles.profileImage} />
-          </TouchableOpacity>
-          <Text style={styles.info}>Email: {user.email}</Text>
-          {editing ? (
-            <>
-              <TextInput
-                style={styles.input}
-                value={summary}
-                onChangeText={setSummary}
-                placeholder="Add a summary about yourself"
-              />
-              <TouchableOpacity style={styles.button} onPress={handleSaveProfile}>
-                <Text style={styles.buttonText}>Save</Text>
-              </TouchableOpacity>
-            </>
-          ) : (
-            <>
-              <Text style={styles.summary}>{summary}</Text>
-              <TouchableOpacity style={styles.button} onPress={() => setEditing(true)}>
-                <Text style={styles.buttonText}>Edit Summary</Text>
-              </TouchableOpacity>
-            </>
-          )}
-          <TouchableOpacity style={[styles.button, styles.logoutButton]} onPress={handleLogout}>
-            <Text style={styles.buttonText}>Logout</Text>
-          </TouchableOpacity>
-        </>
-      ) : (
-        <Text>Loading...</Text>
-      )}
-    </View>
+    <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <View style={styles.container}>
+        {user ? (
+          <>
+            <Text style={styles.title}>Profile</Text>
+            <TouchableOpacity onPress={pickImage}>
+              {newImage || profileImage ? (
+                <Image
+                  source={{ uri: typeof (newImage || profileImage) === 'string' ? (newImage || profileImage) : '' }}
+                  style={styles.profileImage}
+                />
+              ) : (
+                <View style={styles.placeholderImage}>
+                  <Text>No Image</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            <Text style={styles.info}>Email: {user.email}</Text>
+            {editing ? (
+              <>
+                <TextInput
+                  style={styles.input}
+                  value={summary}
+                  onChangeText={setSummary}
+                  placeholder="Add a summary about yourself"
+                />
+                <TouchableOpacity style={styles.button} onPress={handleSaveProfile}>
+                  <Text style={styles.buttonText}>Save</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Text style={styles.summary}>{summary}</Text>
+                <TouchableOpacity style={styles.button} onPress={() => setEditing(true)}>
+                  <Text style={styles.buttonText}>Edit Summary</Text>
+                </TouchableOpacity>
+              </>
+            )}
+            <TouchableOpacity style={[styles.button, styles.logoutButton]} onPress={handleLogout}>
+              <Text style={styles.buttonText}>Logout</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <Text>Loading...</Text>
+        )}
+      </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  scrollContainer: {
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
     backgroundColor: '#E0F7FA',
   },
+  container: {
+    width: '100%',
+    maxWidth: 400,
+    alignItems: 'center',
+  },
   title: {
-    fontSize: 24,
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#007BFF',
     marginBottom: 24,
-    textAlign: 'center',
   },
   profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    marginBottom: 16,
+    borderWidth: 2,
+    borderColor: '#007BFF',
+  },
+  placeholderImage: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: '#ccc',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 16,
   },
   info: {
-    fontSize: 16,
+    fontSize: 18,
     marginBottom: 16,
+    color: '#333',
   },
   summary: {
     fontSize: 16,
     marginBottom: 16,
     textAlign: 'center',
     paddingHorizontal: 16,
+    color: '#666',
   },
   input: {
     height: 40,
@@ -157,6 +187,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingHorizontal: 8,
     width: '100%',
+    borderRadius: 8,
+    backgroundColor: '#fff',
   },
   button: {
     backgroundColor: '#007BFF',
@@ -164,6 +196,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 8,
+    width: '100%',
   },
   buttonText: {
     color: '#fff',
@@ -171,6 +204,7 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     marginTop: 32,
+    backgroundColor: '#FF3B30',
   },
 });
 
