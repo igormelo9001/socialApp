@@ -1,14 +1,26 @@
-import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Alert, StyleSheet } from 'react-native';
 import Button from '../components/Button';
 import Input from '../components/Input';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../firebase';
+import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
+import { auth, db } from '../firebase';
+import { collection, getDocs } from 'firebase/firestore';
 import * as Google from 'expo-auth-session/providers/google';
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  // Redirecionamento automático se já estiver logado
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        console.log('Usuário autenticado:', user.email);
+        navigation.replace('Main');
+      }
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   // Configuração do Google Auth
   const [request, response, promptAsync] = Google.useAuthRequest({
@@ -19,12 +31,33 @@ export default function LoginScreen({ navigation }) {
 
   // Login com Email e Senha
   const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Erro', 'Por favor, preencha email e senha.');
+      return;
+    }
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      navigation.replace('Main'); // Substituir a tela atual para evitar voltar ao login
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      console.log('Usuário logado:', userCredential.user.email);
+      await testFirestoreAccess(); // Teste de acesso ao Firestore
+      navigation.replace('Main');
     } catch (error) {
-      console.error('Erro no login:', error);
-      alert('Erro no login. Verifique suas credenciais e tente novamente.');
+      console.error('Erro no login:', error.code, error.message);
+      Alert.alert('Erro no Login', mapFirebaseError(error.code));
+    }
+  };
+
+  // Teste de acesso ao Firestore
+  const testFirestoreAccess = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, 'testCollection'));
+      if (!querySnapshot.empty) {
+        console.log('Acesso ao Firestore: OK');
+      } else {
+        console.log('Firestore acessível, mas sem documentos.');
+      }
+    } catch (error) {
+      console.error('Erro no Firestore:', error);
+      Alert.alert('Erro', 'Sem permissão para acessar o Firestore.');
     }
   };
 
@@ -35,19 +68,30 @@ export default function LoginScreen({ navigation }) {
       await promptAsync();
     } catch (error) {
       console.error('Erro ao fazer login com Google:', error);
-      alert('Erro ao autenticar com Google. Tente novamente.');
+      Alert.alert('Erro', 'Não foi possível autenticar com Google.');
     }
+  };
+
+  // Mapeamento de erros do Firebase
+  const mapFirebaseError = (errorCode) => {
+    const errors = {
+      'auth/invalid-email': 'Email inválido.',
+      'auth/user-disabled': 'Usuário desativado.',
+      'auth/user-not-found': 'Usuário não encontrado.',
+      'auth/wrong-password': 'Senha incorreta.',
+      'auth/too-many-requests': 'Muitas tentativas. Tente novamente mais tarde.',
+    };
+    return errors[errorCode] || 'Erro desconhecido. Tente novamente.';
   };
 
   return (
     <View style={styles.container}>
-      <Input placeholder="Email" value={email} onChangeText={setEmail} />
-      <Input placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
-      
+      <Input placeholder="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
+      <Input placeholder="Senha" value={password} onChangeText={setPassword} secureTextEntry />
+
       <Button title="Login" onPress={handleLogin} style={styles.button} />
-      <Button title="Register" onPress={() => navigation.navigate('Register')} style={styles.button} />
-      
-      <Button title="Login with Google" disabled={!request} onPress={handleGoogleLogin} style={styles.googleButton} />
+      <Button title="Registrar" onPress={() => navigation.navigate('Register')} style={styles.button} />
+      <Button title="Login com Google" disabled={!request} onPress={handleGoogleLogin} style={styles.googleButton} />
     </View>
   );
 }
