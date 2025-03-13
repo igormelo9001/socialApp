@@ -45,7 +45,7 @@ const MessagesScreen = ({ navigation }) => {
         onChangeText={handleSearch}
       />
       {loading ? (
-        <ActivityIndicator size="large" color="#007BFF" />
+        <ActivityIndicator size={40} color="#007BFF" />
       ) : (
         <FlatList
           data={users}
