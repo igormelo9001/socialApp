@@ -6,8 +6,16 @@ import ContactsScreen from '../screens/ContactsScreen';
 import MessageScreen from '../screens/MessageScreen';
 import PostScreen from '../screens/PostScreen';
 import { Ionicons } from '@expo/vector-icons';
+import ChatScreen from '../screens/ChatScreen';
 
 const Tab = createBottomTabNavigator();
+
+const MessagesStack = () => (
+  <Stack.Navigator>
+    <Stack.Screen name="Messages" component={MessageScreen} />
+    <Stack.Screen name="chat" component={ChatScreen} />
+  </Stack.Navigator>
+);
 
 const MainTabs = () => {
   return (

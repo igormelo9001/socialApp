@@ -4,7 +4,11 @@ import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import MainTabs from './MainTabs';
 import SplashScreen from '../screens/SplashScreen';
-import SendMessageScreen from '../screens/SendMessageScreen';
+import ChatScreen from '../screens/ChatScreen'; 
+import SendMessageScreen from '../screens/SendMessageScreen' // Verifique se o caminho e o nome estão corretos
+
+
+
 
 const Stack = createNativeStackNavigator();
 
@@ -16,6 +20,7 @@ const AuthStack = () => {
       <Stack.Screen name="Register" component={RegisterScreen} />
       <Stack.Screen name="SendMessage" component={SendMessageScreen} />
       <Stack.Screen name="Main" component={MainTabs} />
+      <Stack.Screen name="Chat" component={ChatScreen} />
     </Stack.Navigator>
   );
 };
