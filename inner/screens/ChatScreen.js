@@ -1,50 +1,59 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
-import { collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 
 const ChatScreen = ({ route, navigation }) => {
-  const { conversationId } = route.params; // Recebe o ID da conversa através da navegação
-  const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [isSending, setIsSending] = useState(false);
+  const { conversationId } = route.params; // Recebe o ID da conversa
+  const [messages, setMessages] = useState([]); // Estado para armazenar as mensagens
+  const [newMessage, setNewMessage] = useState(''); // Estado para a nova mensagem
+  const [loading, setLoading] = useState(true); // Estado de carregamento
+  const [isSending, setIsSending] = useState(false); // Estado de envio de mensagem
 
-  // Buscar as mensagens da conversa ao carregar a tela
+  // Função para buscar as mensagens da conversa ao carregar a tela
   useEffect(() => {
     const fetchMessages = async () => {
       setLoading(true);
       try {
         const messagesRef = collection(db, 'conversations', conversationId, 'messages');
         const q = query(messagesRef);
-        const querySnapshot = await getDocs(q);
-        const messagesData = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setMessages(messagesData.reverse()); // Reverter para mostrar as mensagens mais recentes no topo
+
+        // Usando onSnapshot para ouvir em tempo real as mudanças nas mensagens
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+          const messagesData = querySnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+          console.log('Mensagens carregadas:', messagesData); // Depuração para verificar as mensagens
+          setMessages(messagesData.reverse()); // Reverter para mostrar as mensagens mais recentes no topo
+        });
+
+        return () => unsubscribe(); // Limpar o listener quando o componente for desmontado
       } catch (err) {
         Alert.alert('Erro', 'Erro ao carregar as mensagens.');
         console.error(err);
       } finally {
-        setLoading(false);
+        setLoading(false);  
       }
     };
 
     fetchMessages();
+    console.log(fetchMessages)
   }, [conversationId]);
 
-  // Enviar uma nova mensagem
+  // Função para enviar uma nova mensagem
   const handleSendMessage = async () => {
-    if (newMessage.trim() === '') return;
+    if (newMessage.trim() === '') return; // Impede o envio de mensagens vazias
 
     setIsSending(true);
 
-    const senderId = auth.currentUser.uid;
-    const receiverId = conversationId.split('_').find(id => id !== senderId); // Extrai o receiverId da conversa
+    const senderId = auth.currentUser.uid; // O ID do usuário que envia a mensagem
+    const receiverId = conversationId.split('_').find(id => id !== senderId); // O ID do outro usuário na conversa
+
+    console.log('Enviando mensagem:', newMessage, 'Sender:', senderId, 'Receiver:', receiverId); // Depuração
 
     try {
-      // Envia a mensagem para a coleção do Firestore
+      // Adiciona a mensagem no Firestore na coleção de mensagens
       await addDoc(collection(db, 'conversations', conversationId, 'messages'), {
         senderId,
         receiverId,
@@ -52,8 +61,8 @@ const ChatScreen = ({ route, navigation }) => {
         timestamp: serverTimestamp(),
       });
 
-      setNewMessage('');
-      setIsSending(false);
+      setNewMessage(''); // Limpa o campo de entrada após o envio
+      setIsSending(false); // Finaliza o envio
     } catch (err) {
       setIsSending(false);
       Alert.alert('Erro', 'Não foi possível enviar a mensagem.');
@@ -61,12 +70,16 @@ const ChatScreen = ({ route, navigation }) => {
     }
   };
 
-  // Exibição de mensagens
+  // Função para renderizar cada mensagem
   const renderMessage = ({ item }) => {
-    const isSender = item.senderId === auth.currentUser.uid;
+    const isSender = item.senderId === auth.currentUser.uid; // Verifica se a mensagem foi enviada pelo usuário atual
+    console.log('Renderizando mensagem:', item.text, 'De:', item.senderId); // Depuração
+
     return (
       <View style={[styles.messageContainer, isSender ? styles.sender : styles.receiver]}>
-        <Text style={styles.messageText}>{item.text}</Text>
+        <Text style={[styles.messageText, isSender ? styles.senderText : styles.receiverText]}>
+          {item.text}
+        </Text>
       </View>
     );
   };
@@ -118,14 +131,20 @@ const styles = StyleSheet.create({
   },
   sender: {
     alignSelf: 'flex-end',
-    backgroundColor: '#007BFF',
+    backgroundColor: '#007BFF', // Azul para as mensagens enviadas pelo usuário
   },
   receiver: {
     alignSelf: 'flex-start',
-    backgroundColor: '#CCCCCC',
+    backgroundColor: '#CCCCCC', // Cinza para as mensagens recebidas
   },
   messageText: {
-    color: '#fff',
+    color: '#fff', // Cor padrão do texto (branco)
+  },
+  senderText: {
+    color: '#fff', // Texto branco para a mensagem enviada
+  },
+  receiverText: {
+    color: '#000', // Texto preto para a mensagem recebida
   },
   inputContainer: {
     flexDirection: 'row',

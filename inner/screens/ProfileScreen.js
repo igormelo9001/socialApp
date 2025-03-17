@@ -1,3 +1,4 @@
+// ProfileScreen.js
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity } from 'react-native';
 import { signOut } from 'firebase/auth';
@@ -10,7 +11,6 @@ const ProfileScreen = ({ navigation }) => {
   const [user, setUser] = useState(null);
   const [profileImage, setProfileImage] = useState('');
   const [summary, setSummary] = useState('');
-  const [editing, setEditing] = useState(false);
   const [newImage, setNewImage] = useState(null);
 
   useEffect(() => {
@@ -29,7 +29,7 @@ const ProfileScreen = ({ navigation }) => {
       if (userDoc.exists()) {
         const userData = userDoc.data();
         setProfileImage(userData.profileImage);
-        setSummary(userData.summary);
+        setSummary(userData.summary || '');
       }
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -48,12 +48,12 @@ const ProfileScreen = ({ navigation }) => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      aspect: [4, 3],
+      aspect: [1, 1],
       quality: 1,
     });
 
-    if (!result.cancelled) {
-      setNewImage(result.uri);
+    if (!result.canceled) {
+      setNewImage(result.assets[0].uri);
     }
   };
 
@@ -74,7 +74,6 @@ const ProfileScreen = ({ navigation }) => {
         summary: summary,
       });
       setProfileImage(imageUrl);
-      setEditing(false);
       setNewImage(null);
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -86,30 +85,23 @@ const ProfileScreen = ({ navigation }) => {
       {user ? (
         <>
           <Text style={styles.title}>Profile</Text>
-          <TouchableOpacity onPress={pickImage}>
-            <Image source={{ uri: newImage || profileImage }} style={styles.profileImage} />
+          <TouchableOpacity onPress={pickImage} style={styles.uploadButton}>
+            <Text style={styles.buttonText}>Selecionar Foto</Text>
           </TouchableOpacity>
+          {newImage || profileImage ? (
+            <Image source={{ uri: newImage || profileImage }} style={styles.profileImage} />
+          ) : null}
           <Text style={styles.info}>Email: {user.email}</Text>
-          {editing ? (
-            <>
-              <TextInput
-                style={styles.input}
-                value={summary}
-                onChangeText={setSummary}
-                placeholder="Add a summary about yourself"
-              />
-              <TouchableOpacity style={styles.button} onPress={handleSaveProfile}>
-                <Text style={styles.buttonText}>Save</Text>
-              </TouchableOpacity>
-            </>
-          ) : (
-            <>
-              <Text style={styles.summary}>{summary}</Text>
-              <TouchableOpacity style={styles.button} onPress={() => setEditing(true)}>
-                <Text style={styles.buttonText}>Edit Summary</Text>
-              </TouchableOpacity>
-            </>
-          )}
+          <TextInput
+            style={styles.input}
+            value={summary}
+            onChangeText={setSummary}
+            placeholder="Escreva sobre você..."
+            multiline
+          />
+          <TouchableOpacity style={styles.button} onPress={handleSaveProfile}>
+            <Text style={styles.buttonText}>Salvar</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={[styles.button, styles.logoutButton]} onPress={handleLogout}>
             <Text style={styles.buttonText}>Logout</Text>
           </TouchableOpacity>
@@ -144,19 +136,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 16,
   },
-  summary: {
-    fontSize: 16,
-    marginBottom: 16,
-    textAlign: 'center',
-    paddingHorizontal: 16,
-  },
   input: {
-    height: 40,
+    height: 100,
     borderColor: '#ccc',
     borderWidth: 1,
     marginBottom: 16,
     paddingHorizontal: 8,
     width: '100%',
+    textAlignVertical: 'top',
   },
   button: {
     backgroundColor: '#007BFF',
@@ -171,6 +158,13 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     marginTop: 32,
+  },
+  uploadButton: {
+    backgroundColor: '#007BFF',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 16,
   },
 });
 
