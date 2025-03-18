@@ -1,37 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
-import { collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 
 const ChatScreen = ({ route, navigation }) => {
   const { conversationId } = route.params; // Recebe o ID da conversa através da navegação
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
-  const [loading, setLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
 
-  // Buscar as mensagens da conversa ao carregar a tela
+  // Buscar as mensagens em tempo real
   useEffect(() => {
-    const fetchMessages = async () => {
-      setLoading(true);
-      try {
-        const messagesRef = collection(db, 'conversations', conversationId, 'messages');
-        const q = query(messagesRef);
-        const querySnapshot = await getDocs(q);
-        const messagesData = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setMessages(messagesData.reverse()); // Reverter para mostrar as mensagens mais recentes no topo
-      } catch (err) {
-        Alert.alert('Erro', 'Erro ao carregar as mensagens.');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
+    const messagesRef = collection(db, 'conversations', conversationId, 'messages');
+    const q = query(messagesRef, orderBy('timestamp', 'asc')); // Ordena as mensagens por timestamp em ordem crescente
 
-    fetchMessages();
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const messagesData = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setMessages(messagesData); // Atualiza as mensagens em tempo real
+    }, (err) => {
+      Alert.alert('Erro', 'Erro ao carregar as mensagens.');
+      console.error(err);
+    });
+
+    // Limpar o listener quando o componente for desmontado
+    return () => unsubscribe();
   }, [conversationId]);
 
   // Enviar uma nova mensagem
@@ -73,9 +68,10 @@ const ChatScreen = ({ route, navigation }) => {
 
   return (
     <View style={styles.container}>
-      {loading ? (
+      {isSending && (
         <ActivityIndicator size={40} color="#007BFF" />
-      ) : (
+      )}
+      {!isSending && (
         <FlatList
           data={messages}
           keyExtractor={(item) => item.id}
