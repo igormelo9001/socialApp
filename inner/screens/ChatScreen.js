@@ -107,10 +107,13 @@ const ChatScreen = ({ route, navigation }) => {
 
       setNewMessage('');
       setIsSending(false);
+
+      console.log('Sending message to:', receiverId);
+      console.log('Message sent successfully:', newMessage);
     } catch (err) {
       setIsSending(false);
       Alert.alert('Erro', 'Não foi possível enviar a mensagem.');
-      console.error(err);
+      console.error('Error sending message:', err);
     }
   };
 

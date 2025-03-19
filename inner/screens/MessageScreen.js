@@ -80,6 +80,8 @@ const MessagesScreen = ({ navigation }) => {
           lastMessageTime: null,
           unreadCount: 0
         });
+        console.log('Creating new conversation with:', receiverId);
+        console.log('Navigating to chat with conversation ID:', newConversation.id);
         navigation.navigate('Chat', { 
           conversationId: newConversation.id,
           receiverEmail: receiverEmail,
