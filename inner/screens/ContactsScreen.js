@@ -25,7 +25,7 @@ const ContactsScreen = ({ navigation }) => {
   }, []);
 
   const handleProfilePress = (userId) => {
-    navigation.navigate('Profile', { userId });
+    navigation.navigate('Profile', { userId: userId });
   };
 
   const renderItem = ({ item }) => (

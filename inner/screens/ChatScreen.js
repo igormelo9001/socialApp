@@ -4,7 +4,7 @@ import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, u
 import { auth, db } from '../firebase';
 
 const ChatScreen = ({ route, navigation }) => {
-  const { conversationId, receiverEmail, receiverName, receiverId } = route.params;
+  const { conversationId, receiverEmail, receiverName, receiverId, receiverProfileImage } = route.params;
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -16,6 +16,23 @@ const ChatScreen = ({ route, navigation }) => {
     // Configurar título da navegação
     navigation.setOptions({
       title: receiverName || receiverEmail,
+      headerRight: () => (
+        <View style={styles.headerRight}>
+          {receiverProfileImage ? (
+            <Image 
+              source={{ uri: receiverProfileImage }} 
+              style={styles.headerAvatar}
+              onError={(e) => console.error('Erro ao carregar imagem:', e.nativeEvent.error)}
+            />
+          ) : (
+            <View style={styles.headerAvatarPlaceholder}>
+              <Text style={styles.headerAvatarText}>
+                {(receiverName || receiverEmail).charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          )}
+        </View>
+      ),
     });
 
     const messagesRef = collection(db, 'conversations', conversationId, 'messages');
@@ -171,6 +188,27 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#E0F7FA',
+  },
+  headerRight: {
+    marginRight: 16,
+  },
+  headerAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  headerAvatarPlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#007BFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerAvatarText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   messagesList: {
     padding: 16,
