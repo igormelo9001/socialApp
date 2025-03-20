@@ -1,6 +1,6 @@
 // ProfileScreen.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, Alert, Modal, Button } from 'react-native';
 import { signOut, sendPasswordResetEmail } from 'firebase/auth';
 import * as ImagePicker from 'expo-image-picker';
 import { auth, db, storage } from '../firebase';
@@ -14,7 +14,7 @@ const ProfileScreen = ({ navigation, route }) => {
   const [newImage, setNewImage] = useState(null);
   const [isOwnProfile, setIsOwnProfile] = useState(true);
   const [emailForReset, setEmailForReset] = useState('');
-  const [resetCode, setResetCode] = useState('');
+  const [isModalVisible, setModalVisible] = useState(false);
 
   useEffect(() => {
     const currentUser = auth.currentUser;
@@ -138,56 +138,94 @@ const ProfileScreen = ({ navigation, route }) => {
   };
 
   const handleRequestResetCode = async () => {
-    if (emailForReset) {
-      try {
-        await sendPasswordResetEmail(auth, emailForReset);
-        Alert.alert('Sucesso', 'Verifique seu e-mail para redefinição de senha.');
-      } catch (error) {
-        console.error('Erro ao enviar e-mail de redefinição de senha:', error);
-        Alert.alert('Erro', 'Não foi possível enviar o e-mail de redefinição de senha.');
-      }
-    } else {
+    if (!emailForReset) {
       Alert.alert('Erro', 'Por favor, insira um e-mail válido.');
+      return;
+    }
+
+    try {
+      await sendPasswordResetEmail(auth, emailForReset);
+      Alert.alert(
+        'Sucesso',
+        'Verifique seu e-mail para redefinição de senha.',
+        [{ text: 'OK', onPress: () => setModalVisible(false) }]
+      );
+      setEmailForReset('');
+    } catch (error) {
+      console.error('Erro ao enviar e-mail de redefinição de senha:', error);
+      Alert.alert('Erro', 'Não foi possível enviar o e-mail de redefinição de senha.');
     }
   };
+
+  // Renderização do Modal de Redefinição de Senha
+  const renderResetPasswordModal = () => (
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={isModalVisible}
+      onRequestClose={() => setModalVisible(false)}
+    >
+      <View style={styles.modalContainer}>
+        <View style={styles.modalView}>
+          <Text style={styles.modalText}>Redefinir Senha</Text>
+          <TextInput
+            placeholder="Digite seu e-mail"
+            value={emailForReset}
+            onChangeText={setEmailForReset}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            style={styles.modalInput}
+          />
+          <View style={styles.modalButtonContainer}>
+            <TouchableOpacity 
+              style={[styles.modalButton, styles.sendButton]} 
+              onPress={handleRequestResetCode}
+            >
+              <Text style={styles.modalButtonText}>Enviar Link</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.modalButton, styles.cancelButton]} 
+              onPress={() => setModalVisible(false)}
+            >
+              <Text style={styles.modalButtonText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
 
   return (
     <View style={styles.container}>
       {user ? (
         <>
           <Text style={styles.title}>Profile</Text>
-          {isOwnProfile && (
-            <>
+          
+          {/* Avatar Section */}
+          <View style={styles.avatarSection}>
+            {newImage ? (
+              <Image source={{ uri: newImage }} style={styles.profileImage} />
+            ) : profileImage ? (
+              <Image source={{ uri: profileImage }} style={styles.profileImage} />
+            ) : (
+              <View style={[styles.profileImage, styles.placeholderImage]}>
+                <Text style={styles.placeholderText}>{user.email ? user.email[0].toUpperCase() : 'U'}</Text>
+              </View>
+            )}
+            
+            {isOwnProfile && (
               <TouchableOpacity onPress={pickImage} style={styles.uploadButton}>
                 <Text style={styles.buttonText}>Selecionar Foto</Text>
               </TouchableOpacity>
-              <TextInput
-                style={styles.input}
-                onChangeText={setEmailForReset}
-                value={emailForReset}
-                placeholder="Digite seu e-mail para redefinição"
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-              <TouchableOpacity style={styles.button} onPress={handleRequestResetCode}>
-                <Text style={styles.buttonText}>Solicitar Código de Redefinição</Text>
-              </TouchableOpacity>
-            </>
-          )}
-          {newImage ? (
-            <Image source={{ uri: newImage }} style={styles.profileImage} />
-          ) : profileImage ? (
-            <Image source={{ uri: profileImage }} style={styles.profileImage} />
-          ) : (
-            <View style={[styles.profileImage, styles.placeholderImage]}>
-              <Text style={styles.placeholderText}>{user.email ? user.email[0].toUpperCase() : 'U'}</Text>
-            </View>
-          )}
+            )}
+          </View>
+
           <Text style={styles.info}>Email: {user.email}</Text>
+
           {isOwnProfile && (
             <>
               <TextInput
-                style={styles.input}
+                style={styles.summaryInput}
                 value={summary}
                 onChangeText={setSummary}
                 placeholder="Escreva sobre você..."
@@ -195,6 +233,12 @@ const ProfileScreen = ({ navigation, route }) => {
               />
               <TouchableOpacity style={styles.button} onPress={handleSaveProfile}>
                 <Text style={styles.buttonText}>Salvar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.button} 
+                onPress={() => setModalVisible(true)}
+              >
+                <Text style={styles.buttonText}>Redefinir Senha</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.button, styles.logoutButton]} onPress={handleLogout}>
                 <Text style={styles.buttonText}>Logout</Text>
@@ -205,6 +249,8 @@ const ProfileScreen = ({ navigation, route }) => {
       ) : (
         <Text>Loading...</Text>
       )}
+
+      {renderResetPasswordModal()}
     </View>
   );
 };
@@ -221,35 +267,51 @@ const styles = StyleSheet.create({
     fontSize: 24,
     marginBottom: 24,
     textAlign: 'center',
+    color: '#333',
+    fontWeight: 'bold',
+  },
+  avatarSection: {
+    alignItems: 'center',
+    marginBottom: 24,
   },
   profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     marginBottom: 16,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
   placeholderImage: {
-    backgroundColor: '#ccc',
+    backgroundColor: '#007BFF',
     justifyContent: 'center',
     alignItems: 'center',
   },
   placeholderText: {
-    fontSize: 24,
+    fontSize: 36,
     fontWeight: 'bold',
     color: '#fff',
   },
   info: {
     fontSize: 16,
     marginBottom: 16,
+    color: '#333',
   },
-  input: {
+  summaryInput: {
     height: 100,
     borderColor: '#ccc',
     borderWidth: 1,
     marginBottom: 16,
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
+    paddingTop: 12,
     width: '100%',
     textAlignVertical: 'top',
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
   },
   button: {
     backgroundColor: '#007BFF',
@@ -257,20 +319,83 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 8,
+    width: '100%',
   },
   buttonText: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: '600',
   },
   logoutButton: {
     marginTop: 32,
+    backgroundColor: '#FF3B30',
   },
   uploadButton: {
-    backgroundColor: '#007BFF',
+    backgroundColor: '#34C759',
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
-    marginBottom: 16,
+    width: '100%',
+  },
+  // Modal styles
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalView: {
+    width: 300,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalText: {
+    marginBottom: 15,
+    textAlign: 'center',
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  modalInput: {
+    height: 40,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    marginBottom: 20,
+    paddingHorizontal: 12,
+    width: '100%',
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+  },
+  modalButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginTop: 10,
+  },
+  modalButton: {
+    flex: 1,
+    marginHorizontal: 5,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  sendButton: {
+    backgroundColor: '#007BFF',
+  },
+  cancelButton: {
+    backgroundColor: '#FF3B30',
   },
 });
 
