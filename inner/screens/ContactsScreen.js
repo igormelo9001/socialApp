@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, Image } from 'react-native';
 import { db } from '../firebase'; // Ajuste o caminho conforme necessário
-import { getDocs, collection } from 'firebase/firestore';
+import { getDocs, collection, doc, getDoc } from 'firebase/firestore';
 
 const ContactsScreen = ({ navigation }) => {
   const [contacts, setContacts] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   useEffect(() => {
     const fetchContacts = async () => {
@@ -24,21 +26,34 @@ const ContactsScreen = ({ navigation }) => {
     fetchContacts();
   }, []);
 
-  const handleProfilePress = (userId) => {
-    navigation.navigate('Profile', { userId: userId });
+  const handleProfilePress = async (userId) => {
+    try {
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      if (userDoc.exists()) {
+        setSelectedUser({
+          id: userDoc.id,
+          ...userDoc.data()
+        });
+        setModalVisible(true);
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    }
   };
 
-  const renderItem = ({ item }) => (
-    <View style={styles.itemContainer}>
-      <Text style={styles.email}>{item.email}</Text>
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => handleProfilePress(item.id)}
-      >
-        <Text style={styles.buttonText}>View Profile</Text>
-      </TouchableOpacity>
-    </View>
-  );
+  const renderItem = ({ item }) => {
+    return (
+      <View style={styles.itemContainer}>
+        <Text style={styles.email}>{item.email}</Text>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => handleProfilePress(item.id)}
+        >
+          <Text style={styles.buttonText}>View Profile</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -48,6 +63,46 @@ const ContactsScreen = ({ navigation }) => {
         renderItem={renderItem}
         contentContainerStyle={styles.list}
       />
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            {selectedUser && (
+              <>
+                <View style={styles.profileImageContainer}>
+                  {selectedUser.profileImage ? (
+                    <Image 
+                      source={{ uri: selectedUser.profileImage }} 
+                      style={styles.profileImage}
+                    />
+                  ) : (
+                    <View style={[styles.profileImage, styles.placeholderImage]}>
+                      <Text style={styles.placeholderText}>
+                        {selectedUser.email ? selectedUser.email[0].toUpperCase() : 'U'}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.modalEmail}>{selectedUser.email}</Text>
+                {selectedUser.summary && (
+                  <Text style={styles.modalSummary}>{selectedUser.summary}</Text>
+                )}
+                <TouchableOpacity
+                  style={styles.closeButton}
+                  onPress={() => setModalVisible(false)}
+                >
+                  <Text style={styles.closeButtonText}>Fechar</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -80,6 +135,60 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#fff',
     fontSize: 14,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+    width: '80%',
+    alignItems: 'center',
+  },
+  profileImageContainer: {
+    marginBottom: 15,
+  },
+  profileImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+  },
+  placeholderImage: {
+    backgroundColor: '#007BFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  placeholderText: {
+    color: 'white',
+    fontSize: 40,
+    fontWeight: 'bold',
+  },
+  modalEmail: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  modalSummary: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
+    color: '#666',
+  },
+  closeButton: {
+    backgroundColor: '#007BFF',
+    padding: 10,
+    borderRadius: 5,
+    width: '100%',
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
