@@ -16,6 +16,11 @@ basta apontara camera qr code e o aplicativo irá abrir na sua tela.
 OBS: Não é necessário o uso do android studio, pois o expo já resolve esse problema, porém é preciso ter
 o node JS instalado na máquina para rodar.
 
+# Requisitos: É necessário ter o NODE js instalado no sistema operacional e o ambiente expo instalado para uma 
+
+# primeira vez execute o comando: npx create-expo-app@latest
+# Por fim teste: npx expo start
+
 considerações finais: Se houver dificuldades em resolver os problemas de build da aplicação entre em contato 
 
 meu email: igormelo259001@gmail.com 
