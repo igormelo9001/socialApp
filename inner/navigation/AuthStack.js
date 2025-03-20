@@ -7,6 +7,7 @@ import SplashScreen from '../screens/SplashScreen';
 import ChatScreen from '../screens/ChatScreen'; 
 import SendMessageScreen from '../screens/SendMessageScreen' // Verifique se o caminho e o nome estão corretos
 import VideoFeedScreen from '../screens/VideoFeedScreen';
+import MyPicturesScreen from '../screens/MyDocumentsScreen';
 
 
 
@@ -22,6 +23,18 @@ const AuthStack = () => {
       <Stack.Screen name="Main" component={MainTabs} />
       <Stack.Screen name="Chat" component={ChatScreen} />
       <Stack.Screen name="VideoFeed" component={VideoFeedScreen} />
+      <Stack.Screen 
+        name="MyPictures" 
+        component={MyPicturesScreen}
+        options={{
+          headerShown: true,
+          title: 'My Documents',
+          headerStyle: {
+            backgroundColor: '#007AFF',
+          },
+          headerTintColor: '#fff',
+        }}
+      />
     </Stack.Navigator>
   );
 };

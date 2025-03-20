@@ -235,6 +235,12 @@ const ProfileScreen = ({ navigation, route }) => {
                 <Text style={styles.buttonText}>Salvar</Text>
               </TouchableOpacity>
               <TouchableOpacity 
+                style={[styles.button, styles.documentsButton]} 
+                onPress={() => navigation.navigate('MyPictures')}
+              >
+                <Text style={styles.buttonText}>My Pictures</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
                 style={styles.button} 
                 onPress={() => setModalVisible(true)}
               >
@@ -336,6 +342,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     width: '100%',
+  },
+  documentsButton: {
+    backgroundColor: '#34C759',
   },
   // Modal styles
   modalContainer: {
