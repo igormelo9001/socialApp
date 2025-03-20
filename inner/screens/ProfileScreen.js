@@ -1,7 +1,7 @@
 // ProfileScreen.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity } from 'react-native';
-import { signOut } from 'firebase/auth';
+import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { signOut, sendPasswordResetEmail } from 'firebase/auth';
 import * as ImagePicker from 'expo-image-picker';
 import { auth, db, storage } from '../firebase';
 import { getDoc, doc, updateDoc, setDoc } from 'firebase/firestore';
@@ -13,6 +13,8 @@ const ProfileScreen = ({ navigation, route }) => {
   const [summary, setSummary] = useState('');
   const [newImage, setNewImage] = useState(null);
   const [isOwnProfile, setIsOwnProfile] = useState(true);
+  const [emailForReset, setEmailForReset] = useState('');
+  const [resetCode, setResetCode] = useState('');
 
   useEffect(() => {
     const currentUser = auth.currentUser;
@@ -27,7 +29,6 @@ const ProfileScreen = ({ navigation, route }) => {
     if (userId === currentUser.uid) {
       setUser(currentUser);
     } else {
-      // Fetch other user's data
       const fetchUserData = async () => {
         try {
           const userDoc = await getDoc(doc(db, 'users', userId));
@@ -62,17 +63,12 @@ const ProfileScreen = ({ navigation, route }) => {
 
   const fetchUserProfile = async (userId) => {
     try {
-      console.log('Fetching profile for user:', userId);
       const userDoc = await getDoc(doc(db, 'users', userId));
-      
       if (userDoc.exists()) {
         const userData = userDoc.data();
-        console.log('User data retrieved:', userData);
-        
         setProfileImage(userData.profileImage || '');
         setSummary(userData.summary || '');
       } else {
-        console.log('User document does not exist. Creating a new profile.');
         setProfileImage('');
         setSummary('');
       }
@@ -104,51 +100,54 @@ const ProfileScreen = ({ navigation, route }) => {
   };
 
   const handleSaveProfile = async () => {
-    try {
-      if (!user || !user.uid) {
-        console.error('User not authenticated');
-        return;
-      }
+    if (!user || !user.uid) {
+      console.error('User not authenticated');
+      return;
+    }
 
-      let imageUrl = profileImage;
+    let imageUrl = profileImage;
 
-      if (newImage) {
-        const response = await fetch(newImage);
-        const blob = await response.blob();
-        const storageRef = ref(storage, `profile_images/${user.uid}`);
-        await uploadBytes(storageRef, blob);
-        imageUrl = await getDownloadURL(storageRef);
-        console.log('Image uploaded, URL:', imageUrl);
-      }
+    if (newImage) {
+      const response = await fetch(newImage);
+      const blob = await response.blob();
+      const storageRef = ref(storage, `profile_images/${user.uid}`);
+      await uploadBytes(storageRef, blob);
+      imageUrl = await getDownloadURL(storageRef);
+    }
 
-      // Check if user document exists before updating
-      const userDocRef = doc(db, 'users', user.uid);
-      const userDoc = await getDoc(userDocRef);
-      
-      if (userDoc.exists()) {
-        // Update existing document
-        await updateDoc(userDocRef, {
-          profileImage: imageUrl,
-          summary: summary,
-        });
-        console.log('Profile updated successfully');
-      } else {
-        // Create new document if it doesn't exist
-        await setDoc(userDocRef, {
-          profileImage: imageUrl,
-          summary: summary,
-          email: user.email,
-          createdAt: new Date(),
-        });
-        console.log('Profile created successfully');
+    const userDocRef = doc(db, 'users', user.uid);
+    const userDoc = await getDoc(userDocRef);
+    
+    if (userDoc.exists()) {
+      await updateDoc(userDocRef, {
+        profileImage: imageUrl,
+        summary: summary,
+      });
+    } else {
+      await setDoc(userDocRef, {
+        profileImage: imageUrl,
+        summary: summary,
+        email: user.email,
+        createdAt: new Date(),
+      });
+    }
+    
+    setProfileImage(imageUrl);
+    setNewImage(null);
+    alert('Perfil salvo com sucesso!');
+  };
+
+  const handleRequestResetCode = async () => {
+    if (emailForReset) {
+      try {
+        await sendPasswordResetEmail(auth, emailForReset);
+        Alert.alert('Sucesso', 'Verifique seu e-mail para redefinição de senha.');
+      } catch (error) {
+        console.error('Erro ao enviar e-mail de redefinição de senha:', error);
+        Alert.alert('Erro', 'Não foi possível enviar o e-mail de redefinição de senha.');
       }
-      
-      setProfileImage(imageUrl);
-      setNewImage(null);
-      alert('Perfil salvo com sucesso!');
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      alert('Erro ao salvar perfil: ' + error.message);
+    } else {
+      Alert.alert('Erro', 'Por favor, insira um e-mail válido.');
     }
   };
 
@@ -158,11 +157,23 @@ const ProfileScreen = ({ navigation, route }) => {
         <>
           <Text style={styles.title}>Profile</Text>
           {isOwnProfile && (
-            <TouchableOpacity onPress={pickImage} style={styles.uploadButton}>
-              <Text style={styles.buttonText}>Selecionar Foto</Text>
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity onPress={pickImage} style={styles.uploadButton}>
+                <Text style={styles.buttonText}>Selecionar Foto</Text>
+              </TouchableOpacity>
+              <TextInput
+                style={styles.input}
+                onChangeText={setEmailForReset}
+                value={emailForReset}
+                placeholder="Digite seu e-mail para redefinição"
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+              <TouchableOpacity style={styles.button} onPress={handleRequestResetCode}>
+                <Text style={styles.buttonText}>Solicitar Código de Redefinição</Text>
+              </TouchableOpacity>
+            </>
           )}
-          
           {newImage ? (
             <Image source={{ uri: newImage }} style={styles.profileImage} />
           ) : profileImage ? (
@@ -172,7 +183,6 @@ const ProfileScreen = ({ navigation, route }) => {
               <Text style={styles.placeholderText}>{user.email ? user.email[0].toUpperCase() : 'U'}</Text>
             </View>
           )}
-          
           <Text style={styles.info}>Email: {user.email}</Text>
           {isOwnProfile && (
             <>
