@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, Image } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, Image, TextInput } from 'react-native';
 import { db } from '../firebase'; // Ajuste o caminho conforme necessário
 import { getDocs, collection, doc, getDoc } from 'firebase/firestore';
 
@@ -7,6 +7,7 @@ const ContactsScreen = ({ navigation }) => {
   const [contacts, setContacts] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     const fetchContacts = async () => {
@@ -41,6 +42,15 @@ const ContactsScreen = ({ navigation }) => {
     }
   };
 
+  const handleViewProfile = (userId) => {
+    setModalVisible(false); // Fechar o modal antes de navegar
+    navigation.navigate('ContactProfile', { userId: userId });
+  };
+
+  const filteredContacts = contacts.filter(contact =>
+    contact.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   const renderItem = ({ item }) => {
     return (
       <View style={styles.itemContainer}>
@@ -57,8 +67,14 @@ const ContactsScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+      <TextInput
+        style={styles.searchInput}
+        placeholder="Search contacts..."
+        value={searchTerm}
+        onChangeText={setSearchTerm}
+      />
       <FlatList
-        data={contacts}
+        data={filteredContacts}
         keyExtractor={item => item.id}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
@@ -92,6 +108,13 @@ const ContactsScreen = ({ navigation }) => {
                 {selectedUser.summary && (
                   <Text style={styles.modalSummary}>{selectedUser.summary}</Text>
                 )}
+                <TouchableOpacity
+                  style={styles.closeButton}
+                  onPress={() => handleViewProfile(selectedUser.id)}
+                >
+                  <Text style={styles.closeButtonText}>Ver Perfil</Text>
+                </TouchableOpacity>
+                <View style={{ height: 10 }} />
                 <TouchableOpacity
                   style={styles.closeButton}
                   onPress={() => setModalVisible(false)}
@@ -189,6 +212,15 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  searchInput: {
+    height: 40,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    marginBottom: 16,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
   },
 });
 

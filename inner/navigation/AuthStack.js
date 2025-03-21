@@ -8,6 +8,7 @@ import ChatScreen from '../screens/ChatScreen';
 import SendMessageScreen from '../screens/SendMessageScreen' // Verifique se o caminho e o nome estão corretos
 import VideoFeedScreen from '../screens/VideoFeedScreen';
 import MyPicturesScreen from '../screens/MyDocumentsScreen';
+import ContactProfileScreen from '../screens/ContactProfileScreen';
 
 
 
@@ -22,6 +23,7 @@ const AuthStack = () => {
       <Stack.Screen name="SendMessage" component={SendMessageScreen} />
       <Stack.Screen name="Main" component={MainTabs} />
       <Stack.Screen name="Chat" component={ChatScreen} />
+      <Stack.Screen name="ContactProfile" component={ContactProfileScreen} />
       <Stack.Screen name="VideoFeed" component={VideoFeedScreen} />
       <Stack.Screen 
         name="MyPictures" 

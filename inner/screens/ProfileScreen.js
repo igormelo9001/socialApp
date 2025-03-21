@@ -4,10 +4,10 @@ import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, Alert, Moda
 import { signOut, sendPasswordResetEmail } from 'firebase/auth';
 import * as ImagePicker from 'expo-image-picker';
 import { auth, db, storage } from '../firebase';
-import { getDoc, doc, updateDoc, setDoc } from 'firebase/firestore';
+import { getDoc, doc, updateDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
-const ProfileScreen = ({ navigation, route }) => {
+const ProfileScreen = ({ navigation }) => {
   const [user, setUser] = useState(null);
   const [profileImage, setProfileImage] = useState('');
   const [summary, setSummary] = useState('');
@@ -23,60 +23,34 @@ const ProfileScreen = ({ navigation, route }) => {
       return;
     }
 
-    const userId = route.params?.userId || currentUser.uid;
-    setIsOwnProfile(userId === currentUser.uid);
-    
-    if (userId === currentUser.uid) {
-      setUser(currentUser);
-    } else {
-      const fetchUserData = async () => {
-        try {
-          const userDoc = await getDoc(doc(db, 'users', userId));
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            setUser({
-              uid: userId,
-              email: userData.email,
-              ...userData
-            });
-          }
-        } catch (error) {
-          console.error('Error fetching user data:', error);
-        }
-      };
-      fetchUserData();
-    }
+    setIsOwnProfile(true);
 
-    fetchUserProfile(userId);
-  }, [route.params?.userId]);
-
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      const currentUser = auth.currentUser;
-      if (currentUser) {
-        fetchUserProfile(currentUser.uid);
-      }
-    });
-
-    return unsubscribe;
-  }, [navigation]);
-
-  const fetchUserProfile = async (userId) => {
     try {
-      const userDoc = await getDoc(doc(db, 'users', userId));
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        setProfileImage(userData.profileImage || '');
-        setSummary(userData.summary || '');
-      } else {
-        setProfileImage('');
-        setSummary('');
-      }
+      const userDocRef = doc(db, 'users', currentUser.uid);
+
+      // Listener para atualizações em tempo real
+      const unsubscribe = onSnapshot(userDocRef, (snapshot) => {
+        if (snapshot.exists()) {
+          const userData = snapshot.data();
+          setUser({
+            uid: currentUser.uid,
+            email: userData.email,
+            ...userData
+          });
+          setProfileImage(userData.profileImage || '');
+          setSummary(userData.summary || '');
+        } else {
+          console.log("Document not found!");
+        }
+      });
+
+      // Retorna a função de unsubscribe para evitar memory leaks
+      return () => unsubscribe();
+
     } catch (error) {
-      console.error('Error fetching user profile:', error);
-      alert('Erro ao carregar perfil: ' + error.message);
+      console.error('Error fetching user data:', error);
     }
-  };
+  }, [navigation]);
 
   const handleLogout = () => {
     signOut(auth).then(() => {
