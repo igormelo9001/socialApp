@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Image } from 'react-native';
-import { collection, query, where, getDocs, addDoc, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, onSnapshot, orderBy } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 
 const MessagesScreen = ({ navigation }) => {
@@ -9,19 +9,52 @@ const MessagesScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [onlineUsers, setOnlineUsers] = useState(new Set());
+  const [recentConversations, setRecentConversations] = useState({});
 
   useEffect(() => {
-    const fetchUsers = async () => {
+    const fetchUsersAndConversations = async () => {
       setLoading(true);
       setError(null);
 
       try {
+        // Fetch conversations first
+        const currentUser = auth.currentUser.uid;
+        const conversationsRef = collection(db, 'conversations');
+        const conversationsQuery = query(
+          conversationsRef, 
+          where('participants', 'array-contains', currentUser),
+          orderBy('lastMessageTime', 'desc')
+        );
+        
+        // Monitor conversations in real-time to get updates
+        const unsubscribeConversations = onSnapshot(conversationsQuery, (snapshot) => {
+          const conversations = {};
+          
+          snapshot.docs.forEach(doc => {
+            const data = doc.data();
+            // Find the other participant (not current user)
+            const otherParticipant = data.participants.find(p => p !== currentUser);
+            if (otherParticipant) {
+              conversations[otherParticipant] = {
+                lastMessageTime: data.lastMessageTime,
+                lastMessage: data.lastMessage,
+                conversationId: doc.id
+              };
+            }
+          });
+          
+          setRecentConversations(conversations);
+        });
+
+        // Now fetch all users
         const usersQuery = collection(db, 'users');
         const querySnapshot = await getDocs(usersQuery);
         const usersData = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
         setUsers(usersData);
+        
+        return () => unsubscribeConversations();
       } catch (err) {
-        setError('Erro ao carregar usuários');
+        setError('Erro ao carregar usuários e conversas');
         console.error(err);
       } finally {
         setLoading(false);
@@ -30,7 +63,7 @@ const MessagesScreen = ({ navigation }) => {
 
     // Monitorar status online dos usuários
     const onlineRef = collection(db, 'online_status');
-    const unsubscribe = onSnapshot(onlineRef, (snapshot) => {
+    const unsubscribeOnline = onSnapshot(onlineRef, (snapshot) => {
       const online = new Set();
       snapshot.docs.forEach(doc => {
         if (doc.data().isOnline) {
@@ -40,21 +73,64 @@ const MessagesScreen = ({ navigation }) => {
       setOnlineUsers(online);
     });
 
-    fetchUsers();
-    return () => unsubscribe();
+    fetchUsersAndConversations();
+    return () => {
+      unsubscribeOnline();
+    };
   }, []);
 
-  const filteredUsers = users.filter((user) =>
-    user.email.toLowerCase().includes(search.toLowerCase()) && user.id !== auth.currentUser.uid
-  );
+  // Filter and sort users
+  const getFilteredAndSortedUsers = () => {
+    // First filter by search term and exclude current user
+    const filtered = users.filter((user) =>
+      user.email.toLowerCase().includes(search.toLowerCase()) && user.id !== auth.currentUser.uid
+    );
+    
+    // Then sort: first by recent conversations, then by name
+    return filtered.sort((a, b) => {
+      const aConversation = recentConversations[a.id];
+      const bConversation = recentConversations[b.id];
+      
+      // If both have conversations, sort by most recent
+      if (aConversation && bConversation) {
+        // Check if lastMessageTime exists for both
+        if (aConversation.lastMessageTime && bConversation.lastMessageTime) {
+          return bConversation.lastMessageTime.toDate() - aConversation.lastMessageTime.toDate();
+        } else if (aConversation.lastMessageTime) {
+          return -1; // a has timestamp, b doesn't, so a comes first
+        } else if (bConversation.lastMessageTime) {
+          return 1;  // b has timestamp, a doesn't, so b comes first
+        }
+      } 
+      // If only one has a conversation, prioritize that one
+      else if (aConversation) {
+        return -1;
+      } else if (bConversation) {
+        return 1;
+      }
+      
+      // If neither has a conversation or they're equal in recency, sort by name
+      return (a.name || a.email).localeCompare(b.name || b.email);
+    });
+  };
 
   const handleUserPress = async (receiverId, receiverEmail, receiverName) => {
     const currentUser = auth.currentUser.uid;
-    const conversationId = [currentUser, receiverId].sort().join('_');
     const conversationsRef = collection(db, 'conversations');
 
     try {
-      // Verifica se a conversa já existe
+      // Check if we already have a conversation with this user in our state
+      if (recentConversations[receiverId]) {
+        navigation.navigate('Chat', { 
+          conversationId: recentConversations[receiverId].conversationId,
+          receiverEmail: receiverEmail,
+          receiverName: receiverName,
+          receiverId: receiverId
+        });
+        return;
+      }
+
+      // If not in state, check if it exists in Firestore (backup)
       const q = query(conversationsRef, where('participants', 'array-contains', currentUser));
       const querySnapshot = await getDocs(q);
       let conversationExists = false;
@@ -98,7 +174,8 @@ const MessagesScreen = ({ navigation }) => {
   const renderUserItem = ({ item }) => {
     const isOnline = onlineUsers.has(item.id);
     const lastSeen = item.lastSeen ? new Date(item.lastSeen.toDate()).toLocaleString() : 'Nunca';
-
+    const conversation = recentConversations[item.id];
+    
     return (
       <TouchableOpacity 
         style={styles.userContainer} 
@@ -120,10 +197,21 @@ const MessagesScreen = ({ navigation }) => {
           <View style={styles.userDetails}>
             <Text style={styles.userName}>{item.name || item.email}</Text>
             <Text style={styles.userEmail}>{item.email}</Text>
-            <Text style={styles.lastSeen}>
-              {isOnline ? 'Online' : `Último acesso: ${lastSeen}`}
-            </Text>
+            {conversation && conversation.lastMessage ? (
+              <Text style={styles.lastMessage} numberOfLines={1}>
+                {conversation.lastMessage}
+              </Text>
+            ) : (
+              <Text style={styles.lastSeen}>
+                {isOnline ? 'Online' : `Último acesso: ${lastSeen}`}
+              </Text>
+            )}
           </View>
+          {conversation && conversation.lastMessageTime && (
+            <Text style={styles.timeStamp}>
+              {new Date(conversation.lastMessageTime.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+            </Text>
+          )}
         </View>
       </TouchableOpacity>
     );
@@ -148,7 +236,7 @@ const MessagesScreen = ({ navigation }) => {
         <Text style={styles.errorText}>{error}</Text>
       ) : (
         <FlatList
-          data={filteredUsers}
+          data={getFilteredAndSortedUsers()}
           keyExtractor={(item) => item.id}
           renderItem={renderUserItem}
           contentContainerStyle={styles.listContainer}
@@ -253,6 +341,16 @@ const styles = StyleSheet.create({
   lastSeen: {
     fontSize: 12,
     color: '#999',
+  },
+  lastMessage: {
+    fontSize: 13,
+    color: '#666',
+    fontStyle: 'italic',
+  },
+  timeStamp: {
+    fontSize: 12,
+    color: '#999',
+    marginLeft: 8,
   },
   loader: {
     flex: 1,
