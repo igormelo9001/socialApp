@@ -15,6 +15,7 @@ const ProfileScreen = ({ navigation }) => {
   const [isOwnProfile, setIsOwnProfile] = useState(true);
   const [emailForReset, setEmailForReset] = useState('');
   const [isModalVisible, setModalVisible] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const currentUser = auth.currentUser;
@@ -24,31 +25,39 @@ const ProfileScreen = ({ navigation }) => {
     }
 
     setIsOwnProfile(true);
+    setLoading(true);
 
     try {
       const userDocRef = doc(db, 'users', currentUser.uid);
 
-      // Listener para atualizações em tempo real
-      const unsubscribe = onSnapshot(userDocRef, (snapshot) => {
-        if (snapshot.exists()) {
-          const userData = snapshot.data();
-          setUser({
-            uid: currentUser.uid,
-            email: userData.email,
-            ...userData
-          });
-          setProfileImage(userData.profileImage || '');
-          setSummary(userData.summary || '');
-        } else {
-          console.log("Document not found!");
+      const unsubscribe = onSnapshot(
+        userDocRef,
+        (snapshot) => {
+          if (snapshot.exists()) {
+            const userData = snapshot.data();
+            setUser({
+              uid: currentUser.uid,
+              email: userData.email,
+              ...userData
+            });
+            setProfileImage(userData.profileImage || '');
+            setSummary(userData.summary || '');
+          } else {
+            console.log("Document not found!");
+          }
+          setLoading(false);
+        },
+        (error) => {
+          console.error("Error fetching document:", error);
+          setLoading(false);
         }
-      });
+      );
 
-      // Retorna a função de unsubscribe para evitar memory leaks
       return () => unsubscribe();
 
     } catch (error) {
       console.error('Error fetching user data:', error);
+      setLoading(false);
     }
   }, [navigation]);
 
@@ -131,7 +140,6 @@ const ProfileScreen = ({ navigation }) => {
     }
   };
 
-  // Renderização do Modal de Redefinição de Senha
   const renderResetPasswordModal = () => (
     <Modal
       animationType="slide"
@@ -171,11 +179,12 @@ const ProfileScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      {user ? (
+      {loading ? (
+        <Text>Loading...</Text>
+      ) : user ? (
         <>
           <Text style={styles.title}>Profile</Text>
           
-          {/* Avatar Section */}
           <View style={styles.avatarSection}>
             {newImage ? (
               <Image source={{ uri: newImage }} style={styles.profileImage} />
@@ -227,7 +236,7 @@ const ProfileScreen = ({ navigation }) => {
           )}
         </>
       ) : (
-        <Text>Loading...</Text>
+        <Text>Usuário não autenticado.</Text>
       )}
 
       {renderResetPasswordModal()}
@@ -320,7 +329,6 @@ const styles = StyleSheet.create({
   documentsButton: {
     backgroundColor: '#34C759',
   },
-  // Modal styles
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
