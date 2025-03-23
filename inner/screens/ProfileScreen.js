@@ -1,6 +1,6 @@
 // ProfileScreen.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, Alert, Modal, Button } from 'react-native';
+import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, Alert, Modal } from 'react-native';
 import { signOut, sendPasswordResetEmail } from 'firebase/auth';
 import * as ImagePicker from 'expo-image-picker';
 import { auth, db, storage } from '../firebase';
@@ -18,48 +18,58 @@ const ProfileScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
-      navigation.navigate('Login');
-      return;
-    }
+    const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
+      if (currentUser) {
+        setIsOwnProfile(true);
+        setLoading(true);
+        await fetchUserData(currentUser.uid);
+      } else {
+        navigation.navigate('Login');
+      }
+    });
 
-    setIsOwnProfile(true);
-    setLoading(true);
-
-    try {
-      const userDocRef = doc(db, 'users', currentUser.uid);
-
-      const unsubscribe = onSnapshot(
-        userDocRef,
-        (snapshot) => {
-          if (snapshot.exists()) {
-            const userData = snapshot.data();
-            setUser({
-              uid: currentUser.uid,
-              email: userData.email,
-              ...userData
-            });
-            setProfileImage(userData.profileImage || '');
-            setSummary(userData.summary || '');
-          } else {
-            console.log("Document not found!");
-          }
-          setLoading(false);
-        },
-        (error) => {
-          console.error("Error fetching document:", error);
-          setLoading(false);
-        }
-      );
-
-      return () => unsubscribe();
-
-    } catch (error) {
-      console.error('Error fetching user data:', error);
-      setLoading(false);
-    }
+    return () => unsubscribe();
   }, [navigation]);
+
+  const fetchUserData = async (uid) => {
+    const userDocRef = doc(db, 'users', uid);
+    const snapshotUnsubscribe = onSnapshot(userDocRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const userData = snapshot.data();
+        setUser({ uid, email: userData.email, ...userData });
+        setProfileImage(userData.profileImage || '');
+        setSummary(userData.summary || '');
+      } else {
+        createUserDocument(uid);
+      }
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching document:", error);
+      setLoading(false);
+    });
+
+    return () => snapshotUnsubscribe();
+  };
+
+  const createUserDocument = async (uid) => {
+    await setDoc(doc(db, 'users', uid), {
+      email: auth.currentUser.email,
+      createdAt: new Date(),
+      profileImage: '',
+      summary: '',
+    });
+    console.log('Documento do usuário criado com sucesso!');
+  };
+
+  useEffect(() => {
+    const getPermission = async () => {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        alert('Desculpe, precisamos de permissões de galeria para isso funcionar!');
+      }
+    };
+    getPermission();
+  }, []);
 
   const handleLogout = () => {
     signOut(auth).then(() => {
@@ -70,15 +80,20 @@ const ProfileScreen = ({ navigation }) => {
   };
 
   const pickImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 1,
+      });
 
-    if (!result.canceled) {
-      setNewImage(result.assets[0].uri);
+      if (!result.canceled) {
+        setNewImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Erro ao selecionar imagem:', error);
+      alert('Erro ao selecionar imagem. Tente novamente.');
     }
   };
 
@@ -91,33 +106,47 @@ const ProfileScreen = ({ navigation }) => {
     let imageUrl = profileImage;
 
     if (newImage) {
-      const response = await fetch(newImage);
-      const blob = await response.blob();
-      const storageRef = ref(storage, `profile_images/${user.uid}`);
-      await uploadBytes(storageRef, blob);
-      imageUrl = await getDownloadURL(storageRef);
+      try {
+        const response = await fetch(newImage);
+        const blob = await response.blob();
+        const filename = `${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+        const storageRef = ref(storage, `profile_images/${user.uid}/${filename}`);
+        await uploadBytes(storageRef, blob);
+        imageUrl = await getDownloadURL(storageRef);
+        console.log('Imagem carregada com sucesso:', imageUrl);
+      } catch (error) {
+        console.error('Erro ao fazer upload da imagem:', error);
+        alert('Erro ao fazer upload da imagem. Tente novamente.');
+        return;
+      }
     }
 
     const userDocRef = doc(db, 'users', user.uid);
     const userDoc = await getDoc(userDocRef);
     
-    if (userDoc.exists()) {
-      await updateDoc(userDocRef, {
-        profileImage: imageUrl,
-        summary: summary,
-      });
-    } else {
-      await setDoc(userDocRef, {
-        profileImage: imageUrl,
-        summary: summary,
-        email: user.email,
-        createdAt: new Date(),
-      });
+    try {
+      if (userDoc.exists()) {
+        await updateDoc(userDocRef, {
+          profileImage: imageUrl,
+          summary: summary,
+        });
+        console.log('Perfil atualizado com sucesso!');
+      } else {
+        await setDoc(userDocRef, {
+          profileImage: imageUrl,
+          summary: summary,
+          email: user.email,
+          createdAt: new Date(),
+        });
+        console.log('Perfil criado com sucesso!');
+      }
+      setProfileImage(imageUrl);
+      setNewImage(null);
+      alert('Perfil salvo com sucesso!');
+    } catch (error) {
+      console.error('Erro ao atualizar ou criar documento do usuário:', error);
+      alert('Erro ao salvar perfil. Tente novamente.');
     }
-    
-    setProfileImage(imageUrl);
-    setNewImage(null);
-    alert('Perfil salvo com sucesso!');
   };
 
   const handleRequestResetCode = async () => {
@@ -128,11 +157,7 @@ const ProfileScreen = ({ navigation }) => {
 
     try {
       await sendPasswordResetEmail(auth, emailForReset);
-      Alert.alert(
-        'Sucesso',
-        'Verifique seu e-mail para redefinição de senha.',
-        [{ text: 'OK', onPress: () => setModalVisible(false) }]
-      );
+      Alert.alert('Sucesso', 'Verifique seu e-mail para redefinição de senha.', [{ text: 'OK', onPress: () => setModalVisible(false) }]);
       setEmailForReset('');
     } catch (error) {
       console.error('Erro ao enviar e-mail de redefinição de senha:', error);
@@ -141,12 +166,7 @@ const ProfileScreen = ({ navigation }) => {
   };
 
   const renderResetPasswordModal = () => (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={isModalVisible}
-      onRequestClose={() => setModalVisible(false)}
-    >
+    <Modal animationType="slide" transparent={true} visible={isModalVisible} onRequestClose={() => setModalVisible(false)}>
       <View style={styles.modalContainer}>
         <View style={styles.modalView}>
           <Text style={styles.modalText}>Redefinir Senha</Text>
@@ -159,16 +179,10 @@ const ProfileScreen = ({ navigation }) => {
             style={styles.modalInput}
           />
           <View style={styles.modalButtonContainer}>
-            <TouchableOpacity 
-              style={[styles.modalButton, styles.sendButton]} 
-              onPress={handleRequestResetCode}
-            >
+            <TouchableOpacity style={[styles.modalButton, styles.sendButton]} onPress={handleRequestResetCode}>
               <Text style={styles.modalButtonText}>Enviar Link</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.modalButton, styles.cancelButton]} 
-              onPress={() => setModalVisible(false)}
-            >
+            <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => setModalVisible(false)}>
               <Text style={styles.modalButtonText}>Cancelar</Text>
             </TouchableOpacity>
           </View>
@@ -184,7 +198,6 @@ const ProfileScreen = ({ navigation }) => {
       ) : user ? (
         <>
           <Text style={styles.title}>Profile</Text>
-          
           <View style={styles.avatarSection}>
             {newImage ? (
               <Image source={{ uri: newImage }} style={styles.profileImage} />
@@ -195,16 +208,13 @@ const ProfileScreen = ({ navigation }) => {
                 <Text style={styles.placeholderText}>{user.email ? user.email[0].toUpperCase() : 'U'}</Text>
               </View>
             )}
-            
             {isOwnProfile && (
               <TouchableOpacity onPress={pickImage} style={styles.uploadButton}>
                 <Text style={styles.buttonText}>Selecionar Foto</Text>
               </TouchableOpacity>
             )}
           </View>
-
           <Text style={styles.info}>Email: {user.email}</Text>
-
           {isOwnProfile && (
             <>
               <TextInput
@@ -217,16 +227,10 @@ const ProfileScreen = ({ navigation }) => {
               <TouchableOpacity style={styles.button} onPress={handleSaveProfile}>
                 <Text style={styles.buttonText}>Salvar</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.button, styles.documentsButton]} 
-                onPress={() => navigation.navigate('MyPictures')}
-              >
+              <TouchableOpacity style={[styles.button, styles.documentsButton]} onPress={() => navigation.navigate('MyPictures')}>
                 <Text style={styles.buttonText}>My Pictures</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.button} 
-                onPress={() => setModalVisible(true)}
-              >
+              <TouchableOpacity style={styles.button} onPress={() => setModalVisible(true)}>
                 <Text style={styles.buttonText}>Redefinir Senha</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.button, styles.logoutButton]} onPress={handleLogout}>
@@ -238,7 +242,6 @@ const ProfileScreen = ({ navigation }) => {
       ) : (
         <Text>Usuário não autenticado.</Text>
       )}
-
       {renderResetPasswordModal()}
     </View>
   );

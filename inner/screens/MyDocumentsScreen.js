@@ -14,9 +14,24 @@ const MyPicturesScreen = () => {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [newImage, setNewImage] = useState(null);
 
   useEffect(() => {
     fetchDocuments();
+  }, []);
+
+  useEffect(() => {
+    // Solicitar permissões para acessar a galeria de imagens
+    const getPermission = async () => {
+      console.log('Solicitando permissões de galeria...');
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      console.log('Status da permissão de galeria:', status);
+      if (status !== 'granted') {
+        alert('Desculpe, precisamos de permissões de galeria para isso funcionar!');
+      }
+    };
+
+    getPermission();
   }, []);
 
   const fetchDocuments = async () => {
@@ -42,21 +57,17 @@ const MyPicturesScreen = () => {
     try {
       console.log('Starting image upload...');
       setUploading(true);
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 1,
-      });
 
-      if (!result.canceled) {
-        console.log('Image selected:', result);
-        const { uri } = result.assets[0];
-        const name = uri.split('/').pop();
+      // Use a imagem selecionada ou solicite uma nova
+      const imageUri = newImage ? newImage : await pickImage();
+
+      if (imageUri) {
+        console.log('Image selected:', imageUri);
+        const name = imageUri.split('/').pop();
         const userId = auth.currentUser.uid;
 
         // Upload to Firebase Storage with progress tracking
-        const response = await fetch(uri);
+        const response = await fetch(imageUri);
         const blob = await response.blob();
         const storageRef = ref(storage, `images/${userId}/${name}`);
         const uploadTask = uploadBytesResumable(storageRef, blob);
@@ -72,18 +83,25 @@ const MyPicturesScreen = () => {
             alert('Erro ao fazer upload da imagem: ' + error.message);
           },
           async () => {
-            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-            console.log('Upload complete, download URL:', downloadURL);
-            // Store image metadata in Firestore
-            const docRef = await addDoc(collection(db, 'users', userId, 'images'), {
-              fileName: name,
-              fileType: 'image',
-              uploadDate: new Date(),
-              fileUrl: downloadURL,
-            });
-            console.log('Image uploaded with ID:', docRef.id);
-            fetchDocuments(); // Refresh the document list
-            setUploadProgress(0); // Reset progress
+            try {
+              const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+              console.log('Upload complete, download URL:', downloadURL);
+              // Store image metadata in Firestore
+              const docRef = await addDoc(collection(db, 'users', userId, 'images'), {
+                fileName: name,
+                fileType: 'image',
+                uploadDate: new Date(),
+                fileUrl: downloadURL,
+              });
+              console.log('Image uploaded with ID:', docRef.id);
+              fetchDocuments(); // Refresh the document list
+              setNewImage(null); // Limpar a imagem selecionada após o upload
+            } catch (firestoreError) {
+              console.error('Error storing image metadata in Firestore:', firestoreError);
+              alert('Erro ao salvar metadados da imagem: ' + firestoreError.message);
+            } finally {
+              setUploadProgress(0); // Reset progress
+            }
           }
         );
       } else {
@@ -94,6 +112,27 @@ const MyPicturesScreen = () => {
       alert('Erro ao fazer upload da imagem: ' + error.message);
     } finally {
       setUploading(false);
+    }
+  };
+
+  const pickImage = async () => {
+    try {
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.All, // Usando a mesma opção do PostScreen
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        setNewImage(result.assets[0].uri);
+        return result.assets[0].uri; // Retorna a URI da imagem selecionada
+      }
+      return null; // Retorna null se a seleção for cancelada
+    } catch (error) {
+      console.error('Erro ao selecionar imagem:', error);
+      alert('Erro ao selecionar imagem. Tente novamente.');
+      return null;
     }
   };
 

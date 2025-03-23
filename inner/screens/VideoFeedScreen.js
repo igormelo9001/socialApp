@@ -5,7 +5,6 @@ import * as ImagePicker from 'expo-image-picker';
 import { db, storage, auth } from '../firebase';
 import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { v4 as uuidv4 } from 'uuid';
 
 const VideoFeedScreen = () => {
   const [video, setVideo] = useState(null);
@@ -49,7 +48,7 @@ const VideoFeedScreen = () => {
     try {
       const response = await fetch(uri);
       const blob = await response.blob();
-      const filename = `videos/${uuidv4()}`;
+      const filename = `videos/${Date.now()}_${Math.floor(Math.random() * 1000)}`;
       const storageRef = ref(storage, filename);
       
       await uploadBytes(storageRef, blob);
@@ -140,6 +139,8 @@ const VideoFeedScreen = () => {
         data={videos}
         renderItem={renderVideoItem}
         keyExtractor={(item) => item.id}
+        numColumns={2}
+        contentContainerStyle={styles.gridContainer}
         style={styles.videoList}
       />
     </View>
@@ -187,14 +188,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   videoItem: {
-    marginBottom: 20,
+    flex: 1,
+    margin: 5,
     borderRadius: 8,
     overflow: 'hidden',
     backgroundColor: '#f0f0f0',
   },
   videoPlayer: {
     width: '100%',
-    height: 250,
+    height: 150,
+  },
+  gridContainer: {
+    paddingBottom: 20,
+    paddingHorizontal: 10,
   },
 });
 

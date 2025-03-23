@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { View, Text, StyleSheet, Image, FlatList, ActivityIndicator } from 'react-native';
 import { db } from '../firebase';
-import { getDoc, doc } from 'firebase/firestore';
+import { getDoc, doc, collection, query, where, getDocs } from 'firebase/firestore';
 
 const ContactProfileScreen = ({ navigation, route }) => {
   const [user, setUser] = useState(null);
   const [profileImage, setProfileImage] = useState('');
   const [summary, setSummary] = useState('');
+  const [images, setImages] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const { userId } = route.params;
@@ -31,8 +33,31 @@ const ContactProfileScreen = ({ navigation, route }) => {
       }
     };
 
+    const fetchUserImages = async () => {
+      try {
+        const q = query(collection(db, 'users', userId, 'images'));
+        const querySnapshot = await getDocs(q);
+        const docs = [];
+        querySnapshot.forEach((doc) => {
+          docs.push({ id: doc.id, ...doc.data() });
+        });
+        setImages(docs);
+      } catch (error) {
+        console.error('Error fetching images:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchUserData();
+    fetchUserImages();
   }, [route.params?.userId]);
+
+  const renderImage = ({ item }) => (
+    <View style={styles.post}>
+      <Image source={{ uri: item.fileUrl }} style={styles.image} />
+    </View>
+  );
 
   return (
     <View style={styles.container}>
@@ -54,6 +79,20 @@ const ContactProfileScreen = ({ navigation, route }) => {
       ) : (
         <Text>Loading...</Text>
       )}
+
+      <Text style={styles.sectionTitle}>Fotos</Text>
+      {loading ? (
+        <ActivityIndicator size="large" color="#007AFF" style={styles.loader} />
+      ) : (
+        <FlatList
+          data={images}
+          renderItem={renderImage}
+          keyExtractor={(item) => item.id}
+          numColumns={3}
+          contentContainerStyle={styles.gridContainer}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
     </View>
   );
 };
@@ -61,8 +100,6 @@ const ContactProfileScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     padding: 16,
     backgroundColor: '#E0F7FA',
   },
@@ -108,7 +145,42 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 16,
     color: '#333',
-  }
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 15,
+    color: '#333',
+    alignSelf: 'flex-start',
+    marginLeft: 16,
+  },
+  post: {
+    flex: 1,
+    margin: 5,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    overflow: 'hidden',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
+    aspectRatio: 1,
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  gridContainer: {
+    paddingBottom: 20,
+    paddingHorizontal: 10,
+  },
+  loader: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });
 
 export default ContactProfileScreen; 
