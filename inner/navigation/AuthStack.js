@@ -9,6 +9,7 @@ import SendMessageScreen from '../screens/SendMessageScreen' // Verifique se o c
 import VideoFeedScreen from '../screens/VideoFeedScreen';
 import MyPicturesScreen from '../screens/MyDocumentsScreen';
 import ContactProfileScreen from '../screens/ContactProfileScreen';
+import WalletScreen from '../screens/WalletScreen';
 
 
 
@@ -37,6 +38,7 @@ const AuthStack = () => {
           headerTintColor: '#fff',
         }}
       />
+      <Stack.Screen name="Wallet" component={WalletScreen} />
     </Stack.Navigator>
   );
 };

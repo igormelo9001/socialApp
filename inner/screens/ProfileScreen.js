@@ -6,6 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { auth, db, storage } from '../firebase';
 import { getDoc, doc, updateDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { Ionicons } from '@expo/vector-icons';
 
 const ProfileScreen = ({ navigation }) => {
   const [user, setUser] = useState(null);
@@ -236,6 +237,9 @@ const ProfileScreen = ({ navigation }) => {
               <TouchableOpacity style={[styles.button, styles.logoutButton]} onPress={handleLogout}>
                 <Text style={styles.buttonText}>Logout</Text>
               </TouchableOpacity>
+              <TouchableOpacity style={styles.walletButton} onPress={() => navigation.navigate('Wallet')}>
+                <Ionicons name="wallet" size={30} color="black" />
+              </TouchableOpacity>
             </>
           )}
         </>
@@ -390,6 +394,11 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     backgroundColor: '#FF3B30',
+  },
+  walletButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
   },
 });
 

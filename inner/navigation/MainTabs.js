@@ -8,10 +8,14 @@ import PostScreen from '../screens/PostScreen';
 import VideoFeedScreen from '../screens/VideoFeedScreen'; // Importe a nova tela
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'; // Importe os ícones
 import ChatScreen from '../screens/ChatScreen';
+import { TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 const Tab = createBottomTabNavigator();
 
 const MainTabs = () => {
+  const navigation = useNavigation();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -45,7 +49,16 @@ const MainTabs = () => {
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Post" component={PostScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{
+          tabBarLabel: 'Profile',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person" color={color} size={size} />
+          ),
+        }}
+      />
       <Tab.Screen name="Messages" component={MessageScreen} />
       <Tab.Screen name="Contacts" component={ContactsScreen} />
       <Tab.Screen
