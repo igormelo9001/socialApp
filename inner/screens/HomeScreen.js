@@ -13,6 +13,9 @@ const HomeScreen = () => {
   const rotation = useSharedValue(0); // Nova variável para rotação
   const panX = useSharedValue(0);
   const panY = useSharedValue(0);
+  const rotationX = useSharedValue(0); // Definindo a rotação no eixo X
+  const rotationY = useSharedValue(0); // Definindo a rotação no eixo Y
+
 
   useEffect(() => {
     const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
@@ -48,16 +51,21 @@ const HomeScreen = () => {
     }
   };
 
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [
-        { scale: scale.value },
-        { rotate: `${rotation.value}rad` },
-        { translateX: panX.value },
-        { translateY: panY.value },
-      ],
-    };
-  });
+ // Definindo a rotação no eixo Y
+ const animatedStyle = useAnimatedStyle(() => {
+  return {
+    transform: [
+      { perspective: 1000 },
+      { scale: scale.value },
+      { rotateX: `${rotationX.value}rad` }, // Corrigindo com "rad"
+      { rotateY: `${rotationY.value}rad` }, // Corrigindo com "rad"
+      { rotate: `${rotation.value}rad` }, // Corrigindo com "rad"
+      { translateX: panX.value },
+      { translateY: panY.value },
+    ],
+  };
+});
+
 
   const handleGlobePress = () => {
     setIn3DMode(!in3DMode);
