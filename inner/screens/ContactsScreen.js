@@ -48,9 +48,9 @@ const ContactsScreen = ({ navigation }) => {
   };
 
   const filteredContacts = contacts.filter(contact =>
-    contact.email.toLowerCase().includes(searchTerm.toLowerCase())
+    (contact.email || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
-
+  
   const renderItem = ({ item }) => {
     return (
       <View style={styles.itemContainer}>
