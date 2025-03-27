@@ -8,7 +8,7 @@ import { doc, setDoc, getDoc } from 'firebase/firestore';
 import * as Sharing from 'expo-sharing'; // Importando a biblioteca de compartilhamento
 
 // Acessando o token da API a partir do app.json
-const BLOCKCYPHER_API_TOKEN = Constants.manifest.extra.BLOCKCYPHER_API_TOKEN;
+const BLOCKCYPHER_API_TOKEN = Constants.expoConfig.extra.BLOCKCYPHER_API_TOKEN;
 
 const WalletScreen = () => {
   const [balance, setBalance] = useState(0);
