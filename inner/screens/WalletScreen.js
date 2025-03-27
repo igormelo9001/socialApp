@@ -4,13 +4,11 @@ import axios from 'axios';
 import QRCode from 'react-native-qrcode-svg';
 import Constants from 'expo-constants';
 import { db } from '../firebase'; // Importe o Firestore
-import { doc, setDoc, getDoc } from 'firebase/firestore';
 import * as Sharing from 'expo-sharing'; // Importando a biblioteca de compartilhamento
 
-// Acessando o token da API a partir do app.json
 const BLOCKCYPHER_API_TOKEN = Constants.expoConfig.extra.BLOCKCYPHER_API_TOKEN;
 
-const WalletScreen = () => {
+const WalletScreen = ({ navigation }) => {
   const [balance, setBalance] = useState(0);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,7 +20,7 @@ const WalletScreen = () => {
   useEffect(() => {
     fetchBalance();
     fetchTransactions();
-    generateNewAddress(); // Gera um novo endereço ao entrar na tela
+    generateNewAddress();
   }, []);
 
   const fetchBalance = async () => {
@@ -31,11 +29,11 @@ const WalletScreen = () => {
       const response = await axios.get(`https://api.blockcypher.com/v1/btc/main/addrs/${address}/balance`, {
         params: { token: BLOCKCYPHER_API_TOKEN },
       });
-      setBalance(response.data.final_balance / 100000000); // Convertendo de satoshis para BTC
+      setBalance(response.data.final_balance / 100000000);
       console.log('Balance fetched successfully:', response.data.final_balance);
     } catch (error) {
-      console.error('Erro ao buscar saldo:', error);
-      Alert.alert('Erro', 'Não foi possível buscar o saldo.');
+      console.error('Error fetching balance:', error);
+      Alert.alert('Error', 'Could not fetch balance.');
     }
   };
 
@@ -48,8 +46,8 @@ const WalletScreen = () => {
       setTransactions(response.data.txs);
       console.log('Transactions fetched successfully:', response.data.txs);
     } catch (error) {
-      console.error('Erro ao buscar transações:', error);
-      Alert.alert('Erro', 'Não foi possível buscar as transações.');
+      console.error('Error fetching transactions:', error);
+      Alert.alert('Error', 'Could not fetch transactions.');
     } finally {
       setLoading(false);
     }
@@ -59,19 +57,33 @@ const WalletScreen = () => {
     console.log('Generating new address...');
     try {
       const response = await axios.post('https://api.blockcypher.com/v1/btc/main/addresses', {
-        token: BLOCKCYPHER_API_TOKEN, // Use o token do app.json
+        token: BLOCKCYPHER_API_TOKEN,
       });
       setAddress(response.data.address);
       console.log('New address generated:', response.data.address);
     } catch (error) {
-      console.error('Erro ao gerar novo endereço:', error);
-      Alert.alert('Erro', 'Não foi possível gerar um novo endereço.');
+      console.error('Error generating new address:', error);
+      Alert.alert('Error', 'Could not generate a new address.');
     }
   };
 
   const handleSendBitcoin = async () => {
+    if (!address) {
+      Alert.alert(
+        'Error',
+        'No wallet address available. Returning to the previous screen.',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.goBack(),
+          },
+        ]
+      );
+      return;
+    }
+
     if (!recipientAddress || !amountToSend) {
-      Alert.alert('Erro', 'Por favor, insira um endereço de destinatário e um valor.');
+      Alert.alert('Error', 'Please enter a recipient address and an amount.');
       return;
     }
 
@@ -79,45 +91,44 @@ const WalletScreen = () => {
     try {
       const response = await axios.post('https://api.blockcypher.com/v1/btc/main/txs/new', {
         inputs: [{ addresses: [address] }],
-        outputs: [{ addresses: [recipientAddress], value: amountToSend * 100000000 }], // valor em satoshis
+        outputs: [{ addresses: [recipientAddress], value: amountToSend * 100000000 }],
         token: BLOCKCYPHER_API_TOKEN,
       });
 
-      // Assinando a transação
       const tx = response.data;
       const signedTx = await axios.post(`https://api.blockcypher.com/v1/btc/main/txs/${tx.tx.hash}/send`, {
         tx: tx,
         token: BLOCKCYPHER_API_TOKEN,
       });
 
-      Alert.alert('Sucesso', 'Bitcoin enviado com sucesso!');
+      Alert.alert('Success', 'Bitcoin sent successfully!');
       setSendModalVisible(false);
       setRecipientAddress('');
       setAmountToSend('');
-      fetchBalance(); // Atualiza o saldo após o envio
-      fetchTransactions(); // Atualiza o histórico de transações após o envio
+      fetchBalance();
+      fetchTransactions();
     } catch (error) {
-      console.error('Erro ao enviar Bitcoin:', error);
-      Alert.alert('Erro', 'Não foi possível enviar Bitcoin.');
+      console.error('Error sending Bitcoin:', error);
+      Alert.alert('Error', 'Could not send Bitcoin.');
     }
   };
 
   const shareAddress = async () => {
     try {
-      const message = `Meu endereço de carteira Bitcoin: ${address}`;
+      const message = `My Bitcoin wallet address: ${address}`;
       await Sharing.shareAsync(message);
       console.log('Address shared successfully:', address);
     } catch (error) {
-      console.error('Erro ao compartilhar endereço:', error);
-      Alert.alert('Erro', 'Não foi possível compartilhar o endereço.');
+      console.error('Error sharing address:', error);
+      Alert.alert('Error', 'Could not share the address.');
     }
   };
 
   const renderTransaction = ({ item }) => (
     <View style={styles.transactionItem}>
       <Text style={styles.transactionText}>ID: {item.hash}</Text>
-      <Text style={styles.transactionText}>Valor: {item.total / 100000000} BTC</Text>
-      <Text style={styles.transactionText}>Data: {new Date(item.received).toLocaleString()}</Text>
+      <Text style={styles.transactionText}>Value: {item.total / 100000000} BTC</Text>
+      <Text style={styles.transactionText}>Date: {new Date(item.received).toLocaleString()}</Text>
     </View>
   );
 
@@ -127,22 +138,21 @@ const WalletScreen = () => {
         <ActivityIndicator size="large" color="#0000ff" />
       ) : (
         <>
-          <Text style={styles.title}>Carteira de Bitcoin</Text>
-          <Text style={styles.balance}>Saldo: {balance} BTC</Text>
-          <Text style={styles.historyTitle}>Histórico de Transações</Text>
+          <Text style={styles.title}>Bitcoin Wallet</Text>
+          <Text style={styles.balance}>Balance: {balance} BTC</Text>
+          <Text style={styles.historyTitle}>Transaction History</Text>
           <FlatList
             data={transactions}
             renderItem={renderTransaction}
             keyExtractor={(item) => item.hash}
           />
-          <Text style={styles.addressTitle}>Endereço da Carteira:</Text>
-          <Text style={styles.address}>{address}</Text>
-          <QRCode value={address} size={200} />
-          <Button title="Compartilhar Endereço" onPress={shareAddress} />
-          <Button title="Enviar Bitcoin" onPress={() => setSendModalVisible(true)} />
-          <Button title="Receber Bitcoin" onPress={() => Alert.alert('Receber Bitcoin', 'Funcionalidade de recebimento ainda não implementada.')} />
+          <Text style={styles.addressTitle}>Wallet Address:</Text>
+          <Text style={styles.address}>{address || 'No address generated yet.'}</Text>
+          <QRCode value={address || ''} size={200} />
+          <Button title="Share Address" onPress={shareAddress} />
+          <Button title="Send Bitcoin" onPress={() => setSendModalVisible(true)} />
+          <Button title="Receive Bitcoin" onPress={() => Alert.alert('Receive Bitcoin', 'Receive functionality not implemented yet.')} />
 
-          {/* Modal para enviar Bitcoin */}
           <Modal
             animationType="slide"
             transparent={true}
@@ -151,22 +161,22 @@ const WalletScreen = () => {
           >
             <View style={styles.modalContainer}>
               <View style={styles.modalView}>
-                <Text style={styles.modalText}>Enviar Bitcoin</Text>
+                <Text style={styles.modalText}>Send Bitcoin</Text>
                 <TextInput
-                  placeholder="Endereço do Destinatário"
+                  placeholder="Recipient Address"
                   value={recipientAddress}
                   onChangeText={setRecipientAddress}
                   style={styles.modalInput}
                 />
                 <TextInput
-                  placeholder="Valor (BTC)"
+                  placeholder="Amount (BTC)"
                   value={amountToSend}
                   onChangeText={setAmountToSend}
                   keyboardType="numeric"
                   style={styles.modalInput}
                 />
-                <Button title="Enviar" onPress={handleSendBitcoin} />
-                <Button title="Cancelar" onPress={() => setSendModalVisible(false)} />
+                <Button title="Send" onPress={handleSendBitcoin} />
+                <Button title="Cancel" onPress={() => setSendModalVisible(false)} />
               </View>
             </View>
           </Modal>
@@ -248,4 +258,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default WalletScreen; 
+export default WalletScreen;
