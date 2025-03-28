@@ -82,10 +82,8 @@ const MessagesScreen = ({ navigation }) => {
   // Filter and sort users
   const getFilteredAndSortedUsers = () => {
     // First filter by search term and exclude current user
-    const filtered = users.filter((user) =>
-      user.email.toLowerCase().includes(search.toLowerCase()) && user.id !== auth.currentUser.uid
-    );
-    
+   
+     const filtered = users.filter(user => (user.name || '').toLowerCase().includes((search || '').toLowerCase()));
     // Then sort: first by recent conversations, then by name
     return filtered.sort((a, b) => {
       const aConversation = recentConversations[a.id];
@@ -110,7 +108,7 @@ const MessagesScreen = ({ navigation }) => {
       }
       
       // If neither has a conversation or they're equal in recency, sort by name
-      return (a.name || a.email).localeCompare(b.name || b.email);
+      return (a.name || a.email || '').localeCompare(b.name || b.email || '');
     });
   };
 
@@ -176,6 +174,8 @@ const MessagesScreen = ({ navigation }) => {
     const lastSeen = item.lastSeen ? new Date(item.lastSeen.toDate()).toLocaleString() : 'Nunca';
     const conversation = recentConversations[item.id];
     
+    console.log('User data:', item);
+
     return (
       <TouchableOpacity 
         style={styles.userContainer} 
@@ -188,7 +188,7 @@ const MessagesScreen = ({ navigation }) => {
             ) : (
               <View style={styles.avatarPlaceholder}>
                 <Text style={styles.avatarText}>
-                  {(item.name || item.email).charAt(0).toUpperCase()}
+                {(item.name || item.email || "?").charAt(0).toUpperCase()}
                 </Text>
               </View>
             )}
