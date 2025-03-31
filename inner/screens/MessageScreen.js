@@ -50,6 +50,7 @@ const MessagesScreen = ({ navigation }) => {
         const usersQuery = collection(db, 'users');
         const querySnapshot = await getDocs(usersQuery);
         const usersData = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        console.log(usersData);
         setUsers(usersData);
         
         return () => unsubscribeConversations();
@@ -81,9 +82,14 @@ const MessagesScreen = ({ navigation }) => {
 
   // Filter and sort users
   const getFilteredAndSortedUsers = () => {
-    // First filter by search term and exclude current user
-   
-     const filtered = users.filter(user => (user.name || '').toLowerCase().includes((search || '').toLowerCase()));
+    const filtered = users.filter(user => {
+      const userName = user.name || '';
+      const userEmail = user.email || ''; // Include email in the filter
+      const searchTerm = (search || '').toLowerCase();
+      return userName.toLowerCase().includes(searchTerm) || userEmail.toLowerCase().includes(searchTerm);
+    });
+    console.log('Usuários filtrados:', filtered);
+    
     // Then sort: first by recent conversations, then by name
     return filtered.sort((a, b) => {
       const aConversation = recentConversations[a.id];
@@ -227,7 +233,10 @@ const MessagesScreen = ({ navigation }) => {
           style={styles.searchInput}
           placeholder="Buscar contatos..."
           value={search}
-          onChangeText={setSearch}
+          onChangeText={(text) => {
+            setSearch(text);
+            console.log('Valor de busca:', text);
+          }}
         />
       </View>
       {loading ? (

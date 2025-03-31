@@ -10,6 +10,7 @@ import VideoFeedScreen from '../screens/VideoFeedScreen';
 import MyPicturesScreen from '../screens/MyDocumentsScreen';
 import ContactProfileScreen from '../screens/ContactProfileScreen';
 import WalletScreen from '../screens/WalletScreen';
+import BlockchainWalletChecker from '../screens/BlockChainWalletChecker';
 
 
 
@@ -39,6 +40,7 @@ const AuthStack = () => {
         }}
       />
       <Stack.Screen name="Wallet" component={WalletScreen} />
+      <Stack.Screen name="BlockchainWalletChecker" component={BlockchainWalletChecker} />
     </Stack.Navigator>
   );
 };

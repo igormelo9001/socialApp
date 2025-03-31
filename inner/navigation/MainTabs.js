@@ -10,6 +10,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'; // Import
 import ChatScreen from '../screens/ChatScreen';
 import { TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import BlockchainWalletChecker from '../screens/BlockChainWalletChecker';
 
 const Tab = createBottomTabNavigator();
 
@@ -34,6 +35,8 @@ const MainTabs = () => {
             iconName = focused ? 'people' : 'people-outline';
           } else if (route.name === 'VideoFeed') {
             iconName = focused ? 'videocam' : 'videocam-outline'; // Ícone para a tela de vídeos
+          } else if (route.name === 'BlockchainWalletChecker') {
+            iconName = focused ? 'wallet' : 'wallet-outline';
           }
 
           // Escolhe o ícone apropriado para cada tela
@@ -71,6 +74,7 @@ const MainTabs = () => {
           ),
         }}
       />
+      <Tab.Screen name="BlockchainWalletChecker" component={BlockchainWalletChecker} />
     </Tab.Navigator>
   );
 };
