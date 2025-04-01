@@ -16,38 +16,36 @@ const BlockchainWalletChecker = () => {
     return regex.test(address);
   };
 
-  const fetchBalanceFromAPI = async (apiName, address) => {
-    switch (apiName) {
-      case 'BlockCypher':
-        try {
-          const response = await axios.get(`https://api.blockcypher.com/v1/btc/main/${address}/balance`, {
-            params: { token: BLOCKCYPHER_API_TOKEN },
-          });
-          return response.data.final_balance / 100000000;
-        } catch (error) {
-          console.error('Erro ao buscar saldo via BlockCypher:', error.message);
-          throw new Error('BlockCypher API falhou');
-        }
-      case 'Blockchain.com':
-        try {
-          const response = await axios.get(`https://blockchain.info/q/addressbalance/${address}`);
-          const balanceInSatoshis = response.data;
-          return balanceInSatoshis / 100000000;
-        } catch (error) {
-          console.error('Erro ao buscar saldo via Blockchain.com:', error.message);
-          throw new Error('Blockchain.com API falhou');
-        }
-      case 'Blockstream':
-        try {
-          const response = await axios.get(`https://blockstream.info/api/address/${address}`);
-          const balanceInSatoshis = response.data.chain_stats.funded_txo_sum - response.data.chain_stats.spent_txo_sum;
-          return balanceInSatoshis / 100000000;
-        } catch (error) {
-          console.error('Erro ao buscar saldo via Blockstream:', error.message);
-          throw new Error('Blockstream API falhou');
-        }
-      default:
-        throw new Error('API desconhecida');
+  const checkBalanceWithBlockchain = async (address) => {
+    try {
+      const response = await axios.get(`https://blockchain.info/q/addressbalance/${address}`);
+      const balanceInSatoshis = response.data;
+      return balanceInSatoshis / 100000000;
+    } catch (error) {
+      console.error('Erro ao buscar o saldo via Blockchain.com:', error.message);
+      throw new Error('Blockchain.com API falhou');
+    }
+  };
+
+  const checkBalanceWithBlockstream = async (address) => {
+    try {
+      const response = await axios.get(`https://blockstream.info/api/address/${address}`);
+      const balanceInSatoshis = response.data.chain_stats.funded_txo_sum - response.data.chain_stats.spent_txo_sum;
+      return balanceInSatoshis / 100000000;
+    } catch (error) {
+      console.error('Erro ao buscar o saldo via Blockstream:', error.message);
+      throw new Error('Blockstream API falhou');
+    }
+  };
+
+  const checkBalanceWithMempool = async (address) => {
+    try {
+      const response = await axios.get(`https://mempool.space/api/address/${address}`);
+      const balanceInSatoshis = response.data.chain_stats.funded_txo_sum - response.data.chain_stats.spent_txo_sum;
+      return balanceInSatoshis / 100000000;
+    } catch (error) {
+      console.error('Erro ao buscar o saldo via Mempool.space:', error.message);
+      throw new Error('Mempool.space API falhou');
     }
   };
 
@@ -64,15 +62,20 @@ const BlockchainWalletChecker = () => {
 
     setLoading(true);
 
-    const apis = ['BlockCypher', 'Blockchain.com', 'Blockstream'];
+    const apis = [
+      { name: 'Blockchain.com', method: checkBalanceWithBlockchain },
+      { name: 'Blockstream', method: checkBalanceWithBlockstream },
+      { name: 'Mempool.space', method: checkBalanceWithMempool },
+    ];
+
     for (const api of apis) {
       try {
-        const balance = await fetchBalanceFromAPI(api, address);
+        const balance = await api.method(address);
         setBalance(balance);
-        console.log(`Saldo atualizado via ${api}:`, balance);
+        console.log(`Saldo atualizado via ${api.name}:`, balance);
         break;
       } catch (error) {
-        console.error(`Erro ao buscar saldo via ${api}:`, error.message);
+        console.error(`Erro ao buscar saldo via ${api.name}:`, error.message);
       }
     }
 

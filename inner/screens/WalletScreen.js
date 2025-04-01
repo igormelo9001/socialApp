@@ -59,11 +59,21 @@ const WalletScreen = () => {
     try {
       const response = await axios.get(`https://blockchain.info/q/addressbalance/${address}`);
       const balanceInSatoshis = response.data;
-      const balanceInBTC = balanceInSatoshis / 100000000;
-      return balanceInBTC;
+      return balanceInSatoshis / 100000000;
     } catch (error) {
-      console.error('Erro ao buscar o saldo:', error);
-      throw new Error('Não foi possível buscar o saldo.');
+      console.error('Erro ao buscar o saldo via Blockchain.com:', error.message);
+      throw new Error('Blockchain.com API falhou');
+    }
+  };
+
+  const checkBalanceWithBlockstream = async (address) => {
+    try {
+      const response = await axios.get(`https://blockstream.info/api/address/${address}`);
+      const balanceInSatoshis = response.data.chain_stats.funded_txo_sum - response.data.chain_stats.spent_txo_sum;
+      return balanceInSatoshis / 100000000;
+    } catch (error) {
+      console.error('Erro ao buscar o saldo via Blockstream:', error.message);
+      throw new Error('Blockstream API falhou');
     }
   };
 
@@ -78,22 +88,23 @@ const WalletScreen = () => {
   };
 
   const fetchBalance = async () => {
-    try {
-      // Tenta buscar o saldo usando a BlockCypher
-      const response = await axios.get(`https://api.blockcypher.com/v1/btc/main/${address}/balance`, {
-        params: { token: BLOCKCYPHER_API_TOKEN },
-      });
-      setBalance(response.data.final_balance / 100000000);
-      console.log('Saldo atualizado:', response.data.final_balance / 100000000);
-    } catch (error) {
-      // Se a BlockCypher falhar, tenta a Blockchain.com
+    const apis = [
+      { name: 'Blockchain.com', method: checkBalanceWithBlockchain },
+      { name: 'Blockstream', method: checkBalanceWithBlockstream },
+    ];
+
+    for (const api of apis) {
       try {
-        const balance = await checkBalanceWithBlockchain(address);
+        const balance = await api.method(address);
         setBalance(balance);
+        console.log(`Saldo atualizado via ${api.name}:`, balance);
+        return;
       } catch (error) {
-        handleError('Não foi possível buscar o saldo.');
+        console.error(`Erro ao buscar saldo via ${api.name}:`, error.message);
       }
     }
+
+    handleError('Não foi possível buscar o saldo de nenhuma API.');
   };
 
   const fetchTransactions = async () => {
