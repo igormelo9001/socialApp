@@ -77,6 +77,17 @@ const WalletScreen = () => {
     }
   };
 
+  const checkBalanceWithMempool = async (address) => {
+    try {
+      const response = await axios.get(`https://mempool.space/api/address/${address}`);
+      const balanceInSatoshis = response.data.chain_stats.funded_txo_sum - response.data.chain_stats.spent_txo_sum;
+      return balanceInSatoshis / 100000000;
+    } catch (error) {
+      console.error('Erro ao buscar o saldo via Mempool.space:', error.message);
+      throw new Error('Mempool.space API falhou');
+    }
+  };
+
   const fetchTransactionsWithBlockchain = async (address) => {
     try {
       const response = await axios.get(`https://blockchain.info/rawaddr/${address}`);
@@ -88,9 +99,20 @@ const WalletScreen = () => {
   };
 
   const fetchBalance = async () => {
+    if (!address) {
+      handleError('Endereço da carteira não definido.');
+      return;
+    }
+
+    if (!validateAddress(address)) {
+      handleError('Endereço da carteira inválido.');
+      return;
+    }
+
     const apis = [
       { name: 'Blockchain.com', method: checkBalanceWithBlockchain },
       { name: 'Blockstream', method: checkBalanceWithBlockstream },
+      { name: 'Mempool.space', method: checkBalanceWithMempool },
     ];
 
     for (const api of apis) {
