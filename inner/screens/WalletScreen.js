@@ -100,12 +100,12 @@ const WalletScreen = () => {
 
   const fetchBalance = async () => {
     if (!address) {
-      handleError('Endereço da carteira não definido.');
+      console.error('Endereço da carteira não definido.');
       return;
     }
 
     if (!validateAddress(address)) {
-      handleError('Endereço da carteira inválido.');
+      console.error('Endereço da carteira inválido.');
       return;
     }
 
@@ -126,7 +126,7 @@ const WalletScreen = () => {
       }
     }
 
-    handleError('Não foi possível buscar o saldo de nenhuma API.');
+    console.error('Não foi possível buscar o saldo de nenhuma API.');
   };
 
   const fetchTransactions = async () => {
@@ -142,7 +142,7 @@ const WalletScreen = () => {
         const transactions = await fetchTransactionsWithBlockchain(address);
         setTransactions(transactions);
       } catch (error) {
-        handleError('Não foi possível buscar as transações.');
+        console.error('Não foi possível buscar as transações.');
       }
     }
   };
@@ -166,7 +166,7 @@ const WalletScreen = () => {
       }
       return null;
     } catch (error) {
-      handleError('Não foi possível buscar o endereço da carteira.');
+      console.error('Não foi possível buscar o endereço da carteira.');
       return null;
     }
   };
@@ -193,7 +193,7 @@ const WalletScreen = () => {
 
       setAddressCreated(true);
     } catch (error) {
-      handleError('Não foi possível gerar um novo endereço.');
+      console.error('Não foi possível gerar um novo endereço.');
     }
   };
 
@@ -253,7 +253,7 @@ const WalletScreen = () => {
       await fetchBalance();
       await fetchTransactions();
     } catch (error) {
-      handleError('Não foi possível enviar Bitcoin.');
+      console.error('Não foi possível enviar Bitcoin.');
     } finally {
       setTransactionLoading(false);
     }
@@ -284,9 +284,9 @@ const WalletScreen = () => {
   };
 
   const handleHistoryPress = () => {
-    // Aqui você pode adicionar a lógica para lidar com o toque no histórico de transações
-    // Por exemplo, exibir uma mensagem ou navegar para outra tela
-    Alert.alert('Histórico de Transações', 'Nenhuma transação encontrada. Comece a usar sua carteira!');
+    if (transactions.length === 0) {
+      Alert.alert('Histórico de Transações', 'Nenhuma transação encontrada. Comece a usar sua carteira!');
+    }
   };
 
   const historyTitleStyle = [
