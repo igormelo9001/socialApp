@@ -43,8 +43,6 @@ const WalletScreen = () => {
         if (!walletAddress) {
           await generateNewAddress();
         }
-        await fetchBalance();
-        await fetchTransactions();
       } catch (err) {
         setError(err.message);
       } finally {
