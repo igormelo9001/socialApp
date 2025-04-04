@@ -26,32 +26,74 @@ const WalletScreen = () => {
   const [privateKeyModalVisible, setPrivateKeyModalVisible] = useState(false);
   const [privateKey, setPrivateKey] = useState('');
 
+
+  const isMounted = useRef(true);
   const isInitialized = useRef(false);
   const navigation = useNavigation();
 
-  useEffect(() => {
+   // 1. Efeito PRINCIPAL - Inicialização e monitoramento do address
+   useEffect(() => {
+    // A. Inicialização
     const initializeWallet = async () => {
-      if (isInitialized.current) {
-        console.log('Wallet já inicializada, ignorando...');
-        return;
-      }
-
+      if (isInitialized.current) return;
       isInitialized.current = true;
 
       try {
         const walletAddress = await fetchWalletAddress();
         if (!walletAddress) {
-          await generateNewAddress();
+          await generateNewAddress(); // Já chama setAddress internamente
+        } else {
+          setAddress(walletAddress); // Dispara o efeito secundário
         }
       } catch (err) {
-        setError(err.message);
+        if (isMounted.current) setError(err.message);
       } finally {
-        setLoading(false);
+        if (isMounted.current) setLoading(false);
       }
     };
 
     initializeWallet();
+
+    // B. Cleanup
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
+
+  // 2. Efeito SECUNDÁRIO - Atualização do saldo (100% sincronizado com address)
+  useEffect(() => {
+    if (!address) return;
+
+    let isActive = true;
+    console.log("🔄 Atualizando saldo para:", address);
+
+    const updateBalance = async () => {
+      try {
+        // Tentativa principal + fallbacks
+        const balance = await checkBalanceWithBlockchain(address) 
+                       || await checkBalanceWithBlockstream(address)
+                       || await checkBalanceWithMempool(address);
+        
+        if (isActive && isMounted.current) {
+          setBalance(balance || 0); // Garante número mesmo se APIs falharem
+          console.log("✅ Saldo atualizado:", balance);
+        }
+      } catch (error) {
+        if (isActive && isMounted.current) {
+          console.error("❌ Falha ao atualizar saldo:", error);
+          setError("Falha na conexão com a blockchain");
+        }
+      }
+    };
+
+    // Delay estratégico para evitar race conditions
+    const balanceTimer = setTimeout(updateBalance, 500);
+    
+    return () => {
+      isActive = false;
+      clearTimeout(balanceTimer);
+    };
+  }, [address]);
 
   const checkBalanceWithBlockchain = async (address) => {
     try {
