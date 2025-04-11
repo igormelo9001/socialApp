@@ -79,6 +79,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
   },
+  mapWrapper: {
+    marginTop: 20,
+    borderRadius: 12,
+    overflow: 'hidden',
+    height: 400, // Altura fixa para melhor performance
+  },
 });
 
 export default ServicesScreen;
