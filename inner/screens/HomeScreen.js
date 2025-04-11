@@ -5,6 +5,7 @@ import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { PinchGestureHandler, State, GestureHandlerRootView, PanGestureHandler } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, withSpring, useSharedValue } from 'react-native-reanimated';
+import { useNavigation } from '@react-navigation/native';
 
 const HomeScreen = () => {
   const [posts, setPosts] = useState([]);
@@ -14,7 +15,9 @@ const HomeScreen = () => {
   const panX = useSharedValue(0);
   const panY = useSharedValue(0);
   const rotationX = useSharedValue(0); // Definindo a rotação no eixo X
-  const rotationY = useSharedValue(0); // Definindo a rotação no eixo Y
+  const rotationY = useSharedValue(0); 
+  
+  const navigation = useNavigation(); // Definindo a rotação no eixo Y
 
   useEffect(() => {
     const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
@@ -81,8 +84,13 @@ const HomeScreen = () => {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={styles.container}>
         {/* Ícone para alternar entre os modos */}
+
         <TouchableOpacity style={styles.globeButton} onPress={handleGlobePress}>
           <MaterialCommunityIcons name="brain" size={40} color="black" />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.servicesButton} onPress={() => navigation.navigate('Services')}>
+          <MaterialCommunityIcons name="hammer-wrench" size={40} color="black" />
         </TouchableOpacity>
 
         {/* Controles de zoom */}
@@ -202,6 +210,12 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 16,
   },
+  servicesButton: {
+    position: 'absolute',
+    top: 40,
+    left: 20,
+    zIndex: 1,
+  },  
 });
 
 export default HomeScreen;
