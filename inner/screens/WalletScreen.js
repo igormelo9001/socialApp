@@ -247,53 +247,42 @@ const WalletScreen = () => {
   };
 
   const handleSendBitcoin = async () => {
-    if (!recipientAddress || !amountToSend) {
-      Alert.alert('Erro', 'Por favor, insira um endereço de destinatário e um valor.');
-      return;
-    }
-
-    if (!validateAddress(recipientAddress)) {
-      Alert.alert('Erro', 'Endereço de destinatário inválido.');
-      return;
-    }
-
     try {
+      setError('');
       setTransactionLoading(true);
-      setTransactionLogs([]);
+      addTransactionLog('Iniciando transação...');
 
-      const steps = [
-        'Iniciando a transação...',
-        'Validando o endereço do destinatário...',
-        'Calculando as taxas de transação...',
-        'Assinando a transação...',
-        'Enviando para a rede Bitcoin...',
-        'Aguardando confirmações da rede...',
-      ];
-
-      for (const step of steps) {
-        addTransactionLog(step);
-        await new Promise(resolve => setTimeout(resolve, 1500));
+      // Basic validations
+      if (!recipientAddress || !amountToSend) {
+        handleError('Por favor, preencha todos os campos');
+        return;
       }
 
-      const response = await axios.post('https://api.blockcypher.com/v1/btc/main/txs/new', {
-        inputs: [{ addresses: [address] }],
-        outputs: [{ addresses: [recipientAddress], value: amountToSend * 100000000 }],
-        token: BLOCKCYPHER_API_TOKEN,
-      });
+      const amount = parseFloat(amountToSend);
+      const ESTIMATED_FEE = 0.00001; // Estimated transaction fee
+      const totalNeeded = amount + ESTIMATED_FEE;
 
-      const signedTx = await axios.post(`https://api.blockcypher.com/v1/btc/main/txs/${response.data.tx.hash}/send`, {
-        tx: response.data,
-        token: BLOCKCYPHER_API_TOKEN,
-      });
+      // Balance validation
+      if (isNaN(amount) || amount <= 0) {
+        handleError('Por favor, insira um valor válido');
+        return;
+      }
 
-      Alert.alert('Sucesso', 'Bitcoin enviado com sucesso!');
-      setSendModalVisible(false);
-      setRecipientAddress('');
-      setAmountToSend('');
-      await fetchBalance();
-      await fetchTransactions();
+      if (totalNeeded > balance) {
+        handleError(`Saldo insuficiente. Você precisa de ${totalNeeded} BTC (incluindo taxa) mas possui ${balance} BTC`);
+        return;
+      }
+
+      // Address validation
+      if (!validateAddress(recipientAddress)) {
+        handleError('Endereço Bitcoin inválido');
+        return;
+      }
+
+      // Continue with transaction
+      // ...existing code...
     } catch (error) {
-      handleError('Não foi possível enviar Bitcoin.');
+      handleError(`Erro ao enviar Bitcoin: ${error.message}`);
     } finally {
       setTransactionLoading(false);
     }
@@ -622,4 +611,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default WalletScreen; 
+export default WalletScreen;
