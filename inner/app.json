@@ -13,7 +13,10 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "config": {
+        "googleMapsApiKey": "YOUR_GOOGLE_MAPS_API_KEY"
+      }
     },
     "android": {
       "newArchEnabled": true,
@@ -21,7 +24,16 @@
         "foregroundImage": "./assets/inner.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.hemanz.inner"
+      "package": "com.hemanz.inner",
+      "config": {
+        "googleMaps": {
+          "apiKey": "YOUR_GOOGLE_MAPS_API_KEY"
+        }
+      },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -31,6 +43,14 @@
         "projectId": "2eda5a51-ccd0-4a2a-b14b-9c8eea8494ea"
       },
       "BLOCKCYPHER_API_TOKEN": "d6f2f97ba860426ca95edf05c4e0fb69"
-    }
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location."
+        }
+      ]
+    ]
   }
 }

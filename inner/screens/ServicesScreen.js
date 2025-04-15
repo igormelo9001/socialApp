@@ -4,24 +4,26 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const ServicesScreen = () => {
   const [searchText, setSearchText] = useState('');
-  
-  // Lista completa de serviços
+
   const allServices = [
     { name: 'Elétrica', icon: 'flash' },
     { name: 'Encanamento', icon: 'pipe' },
     { name: 'Pintura', icon: 'brush' },
     { name: 'Alvenaria', icon: 'wall' },
     { name: 'Limpeza', icon: 'broom' },
+    { name: 'Jardinagem', icon: 'flower' },
+    { name: 'Marcenaria', icon: 'hammer' },
+    { name: 'Ar Condicionado', icon: 'air-conditioner' },
+    { name: 'Vidraceiro', icon: 'window-maximize' },
+    { name: 'Serralheria', icon: 'wrench' }
   ];
 
-  // Filtra os serviços conforme o texto digitado
   const filteredServices = allServices.filter(service =>
     service.name.toLowerCase().includes(searchText.toLowerCase())
   );
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {/* Barra de Pesquisa */}
       <TextInput
         style={styles.searchBar}
         placeholder="Buscar serviço..."
@@ -29,7 +31,6 @@ const ServicesScreen = () => {
         onChangeText={setSearchText}
       />
 
-      {/* Lista de Serviços */}
       <View style={styles.servicesContainer}>
         {filteredServices.map((service, index) => (
           <View key={index} style={styles.serviceItem}>
@@ -41,6 +42,10 @@ const ServicesScreen = () => {
             <Text style={styles.serviceText}>{service.name}</Text>
           </View>
         ))}
+      </View>
+
+      <View style={styles.mapPlaceholder}>
+        <Text style={styles.mapPlaceholderText}>Em breve teremos um mapa</Text>
       </View>
     </ScrollView>
   );
@@ -72,19 +77,27 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     marginBottom: 10,
-    width: '48%', // Para criar layout de 2 colunas
+    width: '48%',
   },
   serviceText: {
     marginLeft: 8,
     fontSize: 14,
     color: '#333',
   },
-  mapWrapper: {
+  mapPlaceholder: {
     marginTop: 20,
+    padding: 20,
+    backgroundColor: '#f0f0f0',
     borderRadius: 12,
-    overflow: 'hidden',
-    height: 400, // Altura fixa para melhor performance
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 200,
   },
+  mapPlaceholderText: {
+    fontSize: 16,
+    color: '#666',
+    fontWeight: '500',
+  }
 });
 
 export default ServicesScreen;
