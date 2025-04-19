@@ -9,6 +9,7 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@expo/metro-runtime": "~4.0.1",
     "@expo/vector-icons": "^14.0.2",
     "@react-native-async-storage/async-storage": "^1.23.1",
     "@react-native-firebase/app": "^20.5.0",
@@ -26,12 +27,14 @@
     "expo-image-picker": "~16.0.6",
     "expo-linear-gradient": "~14.0.2",
     "expo-location": "^18.0.10",
+    "expo-random": "^14.0.1",
     "expo-sharing": "~13.0.1",
     "expo-status-bar": "~2.0.1",
     "firebase": "^10.12.3",
     "metro": "^0.80.0",
     "metro-react-native-babel-transformer": "^0.80.0",
     "react": "^18.3.1",
+    "react-dom": "18.3.1",
     "react-native": "^0.76.7",
     "react-native-dotenv": "^3.4.11",
     "react-native-geolocation-service": "^5.3.1",
@@ -46,6 +49,7 @@
     "react-native-toast-message": "^2.2.0",
     "react-native-vector-icons": "^10.2.0",
     "react-native-video": "^6.11.0",
+    "react-native-web": "~0.19.13",
     "uuid": "^10.0.0"
   },
   "devDependencies": {

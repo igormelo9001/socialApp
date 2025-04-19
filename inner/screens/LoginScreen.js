@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Alert, StyleSheet, TextInput, Button, Modal, Text, TouchableOpacity } from 'react-native';
-import { signInWithEmailAndPassword, onAuthStateChanged, sendPasswordResetEmail } from 'firebase/auth';
+import { signInWithEmailAndPassword, onAuthStateChanged, sendPasswordResetEmail, GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
 import { auth } from '../firebase';
 import Input from '../components/Input';
 import * as Google from 'expo-auth-session/providers/google';
@@ -14,9 +14,11 @@ export default function LoginScreen({ navigation }) {
 
   // Configuração do Google Auth
   const [request, response, promptAsync] = Google.useAuthRequest({
-    androidClientId: 'SUA_ANDROID_CLIENT_ID',
-    iosClientId: 'SUA_IOS_CLIENT_ID',
-    webClientId: 'SUA_WEB_CLIENT_ID',
+    androidClientId: '883109548398-YOUR_ANDROID_CLIENT_ID.apps.googleusercontent.com',
+    iosClientId: '883109548398-YOUR_IOS_CLIENT_ID.apps.googleusercontent.com',
+    webClientId: '883109548398-YOUR_WEB_CLIENT_ID.apps.googleusercontent.com',
+    expoClientId: '883109548398-YOUR_EXPO_CLIENT_ID.apps.googleusercontent.com',
+    scopes: ['profile', 'email']
   });
 
   // Verificação de autenticação
@@ -85,11 +87,35 @@ export default function LoginScreen({ navigation }) {
   // Função para lidar com o login do Google
   const handleGoogleLogin = async () => {
     if (!request) return;
+    
     try {
-      await promptAsync();
+      const response = await promptAsync();
+      
+      if (response?.type === 'success') {
+        const { id_token } = response.params;
+        
+        // Create Google credential
+        const credential = GoogleAuthProvider.credential(id_token);
+        
+        try {
+          // Sign in to Firebase with credential
+          const userCredential = await signInWithCredential(auth, credential);
+          console.log('Login successful:', userCredential.user.email);
+          navigation.replace('Main');
+        } catch (firebaseError) {
+          console.error('Firebase auth error:', firebaseError);
+          Alert.alert(
+            'Erro de Autenticação',
+            'Erro ao autenticar com o Google. Tente novamente.'
+          );
+        }
+      }
     } catch (error) {
-      console.error('Erro ao fazer login com Google:', error);
-      Alert.alert('Erro', 'Não foi possível autenticar com Google.');
+      console.error('Google sign in error:', error);
+      Alert.alert(
+        'Erro',
+        'Não foi possível realizar o login com Google.'
+      );
     }
   };
 
