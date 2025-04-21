@@ -93,6 +93,14 @@ const HomeScreen = () => {
           <MaterialCommunityIcons name="hammer-wrench" size={40} color="black" />
         </TouchableOpacity>
 
+        {/* Ícone do Fórum */}
+        <TouchableOpacity
+          style={styles.forumButton}
+          onPress={() => navigation.navigate('Forum')}
+        >
+          <MaterialCommunityIcons name="forum" size={40} color="black" />
+        </TouchableOpacity>
+
         {/* Controles de zoom */}
         {in3DMode && (
           <View style={styles.zoomControls}>
@@ -216,6 +224,12 @@ const styles = StyleSheet.create({
     left: 20,
     zIndex: 1,
   },  
+  forumButton: {
+    position: 'absolute',
+    top: 100,
+    right: 20,
+    zIndex: 1,
+  },
 });
 
 export default HomeScreen;

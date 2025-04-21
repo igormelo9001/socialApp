@@ -12,8 +12,10 @@ import ContactProfileScreen from '../screens/ContactProfileScreen';
 import WalletScreen from '../screens/WalletScreen';
 import BlockchainWalletChecker from '../screens/BlockChainWalletChecker';
 import ServicesScreen from '../screens/ServicesScreen';
-
-
+import ForumScreen from '../screens/ForumScreen'; // Importar a tela do fórum
+import CreateCommunityScreen from '../screens/CreateCommunityScreen'; // Importar a tela de criação de comunidade
+import CommunityDetailsScreen from '../screens/CommunityDetailsScreen'; // Importar a tela de detalhes da comunidade (se existir)
+import CreatePollScreen from '../screens/CreatePollScreen'; // Importar a tela de criação de enquetes
 
 const Stack = createNativeStackNavigator();
 
@@ -43,6 +45,10 @@ const AuthStack = () => {
       <Stack.Screen name="Wallet" component={WalletScreen} />
       <Stack.Screen name="BlockchainWalletChecker" component={BlockchainWalletChecker} />
       <Stack.Screen name="Services" component={ServicesScreen} />
+      <Stack.Screen name="Forum" component={ForumScreen} />
+      <Stack.Screen name="CreateCommunity" component={CreateCommunityScreen} />
+      <Stack.Screen name="CommunityDetails" component={CommunityDetailsScreen} />
+      <Stack.Screen name="CreatePoll" component={CreatePollScreen} />
     </Stack.Navigator>
   );
 };
