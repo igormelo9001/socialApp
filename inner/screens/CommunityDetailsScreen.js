@@ -73,20 +73,25 @@ const CommunityDetailsScreen = ({ route, navigation }) => {
     }
 
     try {
-      const imageUrl = await uploadImage();
+      let imageUrl = null;
+      if (image) {
+        imageUrl = await uploadImage(image); // Fazer o upload da imagem
+      }
+
       await addDoc(collection(db, 'communities'), {
         name,
         description,
         isPrivate,
-        image: imageUrl || null,
-        ownerId: 'user-id-placeholder', // Substituir pelo ID do usuário autenticado
+        image: imageUrl, // Salvar a URL da imagem no Firestore
+        ownerId: auth.currentUser?.uid || 'user-id-placeholder', // Substituir pelo ID do usuário autenticado
         createdAt: new Date(),
       });
+
       Alert.alert('Sucesso', 'Comunidade criada com sucesso!');
       navigation.goBack();
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível criar a comunidade.');
-      console.error(error);
+      console.error('Erro ao criar a comunidade:', error);
     }
   };
 
