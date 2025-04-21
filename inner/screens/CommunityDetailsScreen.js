@@ -1,14 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Alert } from 'react-native';
-import { db } from '../firebase';
-import { collection, query, where, onSnapshot, addDoc } from 'firebase/firestore';
+import { db, auth } from '../firebase';
+import { collection, query, where, onSnapshot, addDoc, updateDoc, doc } from 'firebase/firestore';
 import * as ImagePicker from 'expo-image-picker';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { v4 as uuidv4 } from 'uuid';
 
 const CommunityDetailsScreen = ({ route, navigation }) => {
   const { communityId } = route.params;
   const [community, setCommunity] = useState(null);
   const [polls, setPolls] = useState([]);
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [isPrivate, setIsPrivate] = useState(false);
   const [image, setImage] = useState(null);
 
   useEffect(() => {
@@ -50,20 +54,30 @@ const CommunityDetailsScreen = ({ route, navigation }) => {
     });
 
     if (!result.canceled) {
-      setImage(result.uri);
+      setImage(result.assets[0].uri);
     }
   };
 
   const uploadImage = async () => {
-    if (!image) return null;
+    if (!image) {
+      console.error('Nenhuma imagem selecionada.');
+      return null;
+    }
 
-    const storage = getStorage();
-    const imageRef = ref(storage, `communityImages/${Date.now()}.jpg`);
-    const response = await fetch(image);
-    const blob = await response.blob();
+    try {
+      const storage = getStorage();
+      const imageRef = ref(storage, `images/communityImages/${Date.now()}.jpg`); // Ajustar o caminho para corresponder às regras
+      const response = await fetch(image); // Buscar a imagem localmente
+      const blob = await response.blob(); // Converter para blob
 
-    await uploadBytes(imageRef, blob);
-    return await getDownloadURL(imageRef);
+      await uploadBytes(imageRef, blob); // Fazer o upload para o Firebase Storage
+      const downloadURL = await getDownloadURL(imageRef); // Obter a URL pública da imagem
+      console.log('Imagem enviada com sucesso:', downloadURL); // Log da URL da imagem
+      return downloadURL;
+    } catch (error) {
+      console.error('Erro ao enviar a imagem:', error);
+      return null;
+    }
   };
 
   const handleCreateCommunity = async () => {
@@ -73,9 +87,10 @@ const CommunityDetailsScreen = ({ route, navigation }) => {
     }
 
     try {
-      let imageUrl = null;
-      if (image) {
-        imageUrl = await uploadImage(image); // Fazer o upload da imagem
+      const imageUrl = await uploadImage(); // Fazer o upload da imagem e obter a URL
+      if (!imageUrl) {
+        Alert.alert('Erro', 'Não foi possível enviar a imagem.');
+        return;
       }
 
       await addDoc(collection(db, 'communities'), {
@@ -83,7 +98,7 @@ const CommunityDetailsScreen = ({ route, navigation }) => {
         description,
         isPrivate,
         image: imageUrl, // Salvar a URL da imagem no Firestore
-        ownerId: auth.currentUser?.uid || 'user-id-placeholder', // Substituir pelo ID do usuário autenticado
+        ownerId: 'user-id-placeholder', // Substituir pelo ID do usuário autenticado
         createdAt: new Date(),
       });
 
@@ -92,6 +107,33 @@ const CommunityDetailsScreen = ({ route, navigation }) => {
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível criar a comunidade.');
       console.error('Erro ao criar a comunidade:', error);
+    }
+  };
+
+  const handleSaveImage = async () => {
+    if (!image) {
+      Alert.alert('Erro', 'Nenhuma imagem selecionada.');
+      return;
+    }
+
+    try {
+      const imageUrl = await uploadImage(); // Fazer o upload da imagem e obter a URL
+      if (!imageUrl) {
+        Alert.alert('Erro', 'Não foi possível enviar a imagem.');
+        return;
+      }
+
+      // Atualizar o campo `image` no Firestore para a comunidade atual
+      const communityRef = collection(db, 'communities');
+      const communityDoc = communityId; // ID da comunidade atual
+      await updateDoc(doc(communityRef, communityDoc), {
+        image: imageUrl,
+      });
+
+      Alert.alert('Sucesso', 'Imagem salva com sucesso!');
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível salvar a imagem.');
+      console.error('Erro ao salvar a imagem:', error);
     }
   };
 
@@ -121,6 +163,11 @@ const CommunityDetailsScreen = ({ route, navigation }) => {
         <Text style={styles.imagePickerText}>Selecionar Imagem</Text>
       </TouchableOpacity>
       {image && <Image source={{ uri: image }} style={styles.previewImage} />}
+
+      {/* Botão para salvar a imagem */}
+      <TouchableOpacity style={styles.createButton} onPress={handleSaveImage}>
+        <Text style={styles.createButtonText}>Salvar Imagem</Text>
+      </TouchableOpacity>
 
       {/* Lista de enquetes */}
       <Text style={styles.sectionTitle}>Enquetes</Text>
@@ -217,6 +264,18 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignSelf: 'center',
     marginBottom: 16,
+  },
+  createButton: {
+    padding: 16,
+    backgroundColor: '#4CAF50',
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  createButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

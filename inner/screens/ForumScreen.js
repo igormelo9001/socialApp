@@ -14,6 +14,7 @@ const ForumScreen = ({ navigation }) => {
         id: doc.id,
         ...doc.data(),
       }));
+      console.log('Comunidades carregadas:', fetchedCommunities); // Log para depuração
       setCommunities(fetchedCommunities);
     });
 
@@ -25,7 +26,10 @@ const ForumScreen = ({ navigation }) => {
       style={styles.communityItem}
       onPress={() => navigation.navigate('CommunityDetails', { communityId: item.id })}
     >
-      <Image source={{ uri: item.image }} style={styles.communityImage} />
+      <Image
+        source={{ uri: item.image || 'https://via.placeholder.com/50' }} // Fallback para imagem padrão
+        style={styles.communityImage}
+      />
       <View style={styles.communityInfo}>
         <Text style={styles.communityName}>{item.name}</Text>
         <Text style={styles.communityDescription}>{item.description}</Text>
