@@ -4,18 +4,19 @@ import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import MainTabs from './MainTabs';
 import SplashScreen from '../screens/SplashScreen';
-import ChatScreen from '../screens/ChatScreen'; 
-import SendMessageScreen from '../screens/SendMessageScreen' // Verifique se o caminho e o nome estão corretos
+import ChatScreen from '../screens/ChatScreen';
+import SendMessageScreen from '../screens/SendMessageScreen';
 import VideoFeedScreen from '../screens/VideoFeedScreen';
 import MyPicturesScreen from '../screens/MyDocumentsScreen';
 import ContactProfileScreen from '../screens/ContactProfileScreen';
 import WalletScreen from '../screens/WalletScreen';
 import BlockchainWalletChecker from '../screens/BlockChainWalletChecker';
 import ServicesScreen from '../screens/ServicesScreen';
-import ForumScreen from '../screens/ForumScreen'; // Importar a tela do fórum
-import CreateCommunityScreen from '../screens/CreateCommunityScreen'; // Importar a tela de criação de comunidade
-import CommunityDetailsScreen from '../screens/CommunityDetailsScreen'; // Importar a tela de detalhes da comunidade (se existir)
-import CreatePollScreen from '../screens/CreatePollScreen'; // Importar a tela de criação de enquetes
+import ForumScreen from '../screens/ForumScreen';
+import CreateCommunityScreen from '../screens/CreateCommunityScreen';
+import CommunityDetailsScreen from '../screens/CommunityDetailsScreen';
+import CreatePollScreen from '../screens/CreatePollScreen';
+import PollDetailsScreen from '../screens/PollDetailsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -30,8 +31,8 @@ const AuthStack = () => {
       <Stack.Screen name="Chat" component={ChatScreen} />
       <Stack.Screen name="ContactProfile" component={ContactProfileScreen} />
       <Stack.Screen name="VideoFeed" component={VideoFeedScreen} />
-      <Stack.Screen 
-        name="MyPictures" 
+      <Stack.Screen
+        name="MyPictures"
         component={MyPicturesScreen}
         options={{
           headerShown: true,
@@ -49,6 +50,7 @@ const AuthStack = () => {
       <Stack.Screen name="CreateCommunity" component={CreateCommunityScreen} />
       <Stack.Screen name="CommunityDetails" component={CommunityDetailsScreen} />
       <Stack.Screen name="CreatePoll" component={CreatePollScreen} />
+      <Stack.Screen name="PollDetails" component={PollDetailsScreen} />
     </Stack.Navigator>
   );
 };

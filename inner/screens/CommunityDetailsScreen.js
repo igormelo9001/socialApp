@@ -138,7 +138,10 @@ const CommunityDetailsScreen = ({ route, navigation }) => {
   };
 
   const renderPoll = ({ item }) => (
-    <TouchableOpacity style={styles.pollItem}>
+    <TouchableOpacity
+      style={styles.pollItem}
+      onPress={() => navigation.navigate('PollDetails', { pollId: item.id, communityId })}
+    >
       <Text style={styles.pollTitle}>{item.title}</Text>
     </TouchableOpacity>
   );
