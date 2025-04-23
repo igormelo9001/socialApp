@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
 import { db } from '../firebase';
-import { collection, addDoc, query, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, addDoc, query, onSnapshot, orderBy, doc, getDoc } from 'firebase/firestore'; // Importar métodos para buscar dados do Firestore
 import { getAuth } from 'firebase/auth'; // Importar o Firebase Auth
 
 const PollDetailsScreen = ({ route }) => {
@@ -53,14 +53,26 @@ const PollDetailsScreen = ({ route }) => {
         return;
       }
 
-      const userName = user.displayName || 'Usuário Anônimo'; // Nome do usuário
-      const userProfileImage = user.photoURL || ''; // URL da foto do perfil
+      // Usar o e-mail como userName
+      let userName = user.email || 'Usuário Anônimo';
+      let userProfileImage = user.photoURL || '';
+
+      if (!userProfileImage) {
+        // Buscar informações no Firestore
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          userProfileImage = userData.profileImage || '';
+        }
+      }
 
       const commentsRef = collection(db, 'communities', communityId, 'polls', pollId, 'comments');
       await addDoc(commentsRef, {
         text: newComment,
         createdAt: new Date(),
-        userName,
+        userName, // Agora usando o e-mail como nome do usuário
         userProfileImage,
       });
 
@@ -90,7 +102,9 @@ const PollDetailsScreen = ({ route }) => {
         renderItem={({ item }) => (
           <View style={styles.commentItem}>
             <Image
-              source={{ uri: item.userProfileImage }}
+              source={{
+                uri: item.userProfileImage || 'https://via.placeholder.com/40', // URL padrão para imagem
+              }}
               style={styles.profileImage}
             />
             <View style={styles.commentContent}>
