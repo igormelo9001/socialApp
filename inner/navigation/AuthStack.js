@@ -17,6 +17,8 @@ import CreateCommunityScreen from '../screens/CreateCommunityScreen';
 import CommunityDetailsScreen from '../screens/CommunityDetailsScreen';
 import CreatePollScreen from '../screens/CreatePollScreen';
 import PollDetailsScreen from '../screens/PollDetailsScreen';
+import MarketplaceScreen from '../screens/MarketplaceScreen';
+import OfferScreen from '../screens/OfferScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -51,6 +53,8 @@ const AuthStack = () => {
       <Stack.Screen name="CommunityDetails" component={CommunityDetailsScreen} />
       <Stack.Screen name="CreatePoll" component={CreatePollScreen} />
       <Stack.Screen name="PollDetails" component={PollDetailsScreen} />
+      <Stack.Screen name="Marketplace" component={MarketplaceScreen} />
+      <Stack.Screen name="Offer" component={OfferScreen} />
     </Stack.Navigator>
   );
 };

@@ -101,6 +101,14 @@ const HomeScreen = () => {
           <MaterialCommunityIcons name="forum" size={40} color="black" />
         </TouchableOpacity>
 
+        {/* Ícone do Marketplace */}
+        <TouchableOpacity
+          style={styles.marketplaceButton}
+          onPress={() => navigation.navigate('Marketplace')}
+        >
+          <MaterialCommunityIcons name="store" size={40} color="black" />
+        </TouchableOpacity>
+
         {/* Controles de zoom */}
         {in3DMode && (
           <View style={styles.zoomControls}>
@@ -227,6 +235,12 @@ const styles = StyleSheet.create({
   forumButton: {
     position: 'absolute',
     top: 100,
+    right: 20,
+    zIndex: 1,
+  },
+  marketplaceButton: {
+    position: 'absolute',
+    top: 160,
     right: 20,
     zIndex: 1,
   },
