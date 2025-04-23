@@ -28,6 +28,7 @@ const MarketplaceScreen = () => {
       <Text style={styles.description}>{item.description}</Text>
       {item.price && <Text style={styles.price}>R$ {item.price}</Text>}
       {item.specifications && <Text style={styles.specifications}>{item.specifications}</Text>}
+      <Text style={styles.userEmail}>Publicado por: {item.user}</Text> {/* Certifique-se de que o e-mail está dentro de <Text> */}
     </View>
   );
 
@@ -90,6 +91,11 @@ const styles = StyleSheet.create({
   specifications: {
     fontSize: 12,
     color: '#999',
+  },
+  userEmail: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 8,
   },
   emptyText: {
     textAlign: 'center',

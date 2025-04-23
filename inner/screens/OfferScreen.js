@@ -54,7 +54,7 @@ const OfferScreen = ({ navigation }) => {
         price: price || null,
         specifications: specifications || null,
         image: imageUrl,
-        user: auth.currentUser.email,
+        user: auth.currentUser.email, // Salvar o e-mail do usuário
         createdAt: serverTimestamp(),
       };
 
